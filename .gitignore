@@ -1,2 +1,19 @@
+# Virtuelle Python-Umgebungen (venv, env etc.)
 .venv/
+venv/
+ENV/
+env/
+
+# Jupyter Notebook Checkpoints & Cache
+.ipynb_checkpoints/
 __pycache__/
+*.py[cod]
+
+# VS Code Einstellungen & Cache
+.vscode/
+*.swp
+settings.json
+
+# Betriebssystem-Dateien
+.DS_Store
+Thumbs.db
