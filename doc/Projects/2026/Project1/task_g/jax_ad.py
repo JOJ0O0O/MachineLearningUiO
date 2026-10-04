@@ -1,0 +1,127 @@
+import csv
+import numpy as np
+import jax
+import jax.numpy as jnp
+from sklearn.model_selection import KFold
+from sklearn.linear_model import Lasso
+from config import CONFIG
+from data import runge_data, cost_mse
+
+def jax_function():
+    #using double float precision for jax 
+    jax.config.update("jax_enable_x64", True)
+
+    #jax coss function
+    def loss_ols(theta, X, y):
+        return jnp.mean((X @ theta - y) ** 2)
+
+    def loss_ridge(theta, X, y, lam):
+        return jnp.mean((X @ theta - y) ** 2) + lam * jnp.sum(theta ** 2)
+
+    def loss_lasso(theta, X, y, lam):
+        # jnp.abs at 0 returns derivative 0.0 in JAX (a valid subgradient)
+        return jnp.mean((X @ theta - y) ** 2) + lam * jnp.sum(jnp.abs(theta))
+
+    #auto diff and computing the gradients with jax
+    grad_ols_jax = jax.grad(loss_ols)
+    grad_ridge_jax = jax.grad(loss_ridge)
+    grad_lasso_jax = jax.grad(loss_lasso)
+
+    # adam optimizer working for jax
+    def jax_optimise_adam(grad_fn, theta0, gamma=CONFIG["gamma"], num_iters=CONFIG["num_iters"]):
+        theta = jnp.array(theta0, dtype=jnp.float64)
+        m = jnp.zeros_like(theta)
+        r = jnp.zeros_like(theta)
+        beta1, beta2, eps = 0.9, 0.999, 1e-8
+        
+        for t in range(1, num_iters + 1):
+            g = grad_fn(theta)
+            m = beta1 * m + (1.0 - beta1) * g
+            r = beta2 * r + (1.0 - beta2) * (g * g)
+            m_hat = m / (1.0 - beta1**t)
+            r_hat = r / (1.0 - beta2**t)
+            theta = theta - gamma * m_hat / (jnp.sqrt(r_hat) + eps)
+            
+        return np.array(theta)
+
+    #verification with k fold 
+    degree = CONFIG["degree"]
+    lam = CONFIG["lam"]
+    x_raw, X_raw, y_raw = runge_data(n=CONFIG["n_samples"], degree=degree)
+
+    k_folds = CONFIG["k_folds"]
+    kf = KFold(n_splits=k_folds, shuffle=True, random_state=CONFIG["random_state"])
+
+    jax_results = {
+        'OLS (JAX AD)': {'train': [], 'test': []},
+        'Ridge (JAX AD)': {'train': [], 'test': []},
+        'Lasso (JAX AD)': {'train': [], 'test': []},
+        'Lasso (Scikit-Learn)': {'train': [], 'test': []}
+    }
+
+    for train_idx, test_idx in kf.split(X_raw):
+        # Unscaled split
+        X_tr, X_te = X_raw[train_idx], X_raw[test_idx]
+        y_tr, y_te = y_raw[train_idx], y_raw[test_idx]
+        
+        # Scale train and test (prevent data leakage)
+        X_mean, X_std = X_tr.mean(axis=0), X_tr.std(axis=0)
+        X_tr_norm = (X_tr - X_mean) / X_std
+        X_te_norm = (X_te - X_mean) / X_std
+        
+        y_mean = y_tr.mean()
+        y_tr_cent = y_tr - y_mean
+        y_te_cent = y_te - y_mean
+
+        #convert to JAX DeviceArrays
+        X_tr_j, y_tr_j = jnp.array(X_tr_norm), jnp.array(y_tr_cent)
+        theta_init = jnp.zeros(degree)
+
+        #training via jax AD
+        theta_ols = jax_optimise_adam(lambda th: grad_ols_jax(th, X_tr_j, y_tr_j), theta_init)
+        theta_ridge = jax_optimise_adam(lambda th: grad_ridge_jax(th, X_tr_j, y_tr_j, lam), theta_init)
+        theta_lasso = jax_optimise_adam(lambda th: grad_lasso_jax(th, X_tr_j, y_tr_j, lam), theta_init)
+        
+        #Benchmark Scikit-Learn
+        sk_lasso = Lasso(alpha=lam / 2.0, fit_intercept=False, max_iter=10000)
+        sk_lasso.fit(X_tr_norm, y_tr_cent)
+        theta_sk = sk_lasso.coef_
+
+        #Dict with the MSE 
+        models = {
+            'OLS (JAX AD)': theta_ols,
+            'Ridge (JAX AD)': theta_ridge,
+            'Lasso (JAX AD)': theta_lasso,
+            'Lasso (Scikit-Learn)': theta_sk
+        }
+        
+        for name, theta in models.items():
+            jax_results[name]['train'].append(cost_mse(theta, X_tr_norm, y_tr_cent))
+            jax_results[name]['test'].append(cost_mse(theta, X_te_norm, y_te_cent))
+
+    #print the tables, written by ai 
+    print("="*75)
+    print(f"{'Method (JAX Verification)':<25} | {'CV Train MSE (std)':<20} | {'CV Test MSE (std)':<20}")
+    print("="*75)
+
+    csv_data = [["Method", "Train_MSE", "Train_STD", "Test_MSE", "Test_STD"]]
+
+    for name in jax_results.keys():
+        train_m = np.mean(jax_results[name]['train'])
+        train_s = np.std(jax_results[name]['train'])
+        test_m = np.mean(jax_results[name]['test'])
+        test_s = np.std(jax_results[name]['test'])
+        
+        print(f"{name:<25} | {train_m:.6f} ({train_s:.4f}) | {test_m:.6f} ({test_s:.4f})")
+        csv_data.append([name, train_m, train_s, test_m, test_s])
+    print("="*75)
+
+    if CONFIG.get("save_csv", False):
+        filename = f"jax_results_deg{degree}_lam{lam}_n{CONFIG['n_samples']}_kf{k_folds}.csv"
+        with open(filename, mode='w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(csv_data)
+
+    # inspecting jax subgradient at zero to compare it to our own lasse regression
+    zero_grad = jax.grad(jnp.abs)(0.0)
+    print(f"\n[AD Verification] JAX derivative of |x| at x=0.0: {zero_grad}")
