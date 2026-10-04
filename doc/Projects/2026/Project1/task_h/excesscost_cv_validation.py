@@ -13,7 +13,7 @@ t0 = CROSS_VALIDATION['t0']
 t1 = CROSS_VALIDATION['t1']
 n_splits = CROSS_VALIDATION['n_splits']
 
-def run_cv_experiment(save_figures = False):
+def run_cv_experiment(save_figures = True):
     for n_epochs in n_epochs_list:
         #generating the data not using the returnes x (_)
         x10_full, X10_full, y10_full = runge_data(degree=COMMON['degree'], noise=COMMON['noise'], seed=COMMON['seed'])
@@ -74,7 +74,7 @@ def run_cv_experiment(save_figures = False):
             evals_sgd[b] = np.arange(len(mean_sgd_train[b])) * n_train_cv
 
         #plotting two figures in one plot
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6), dpi=120)
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10), dpi=300)
         colors = cm.viridis(np.linspace(0, 0.9, len(batch_sizes)))
 
         #first subolot CV mean train excess Cost

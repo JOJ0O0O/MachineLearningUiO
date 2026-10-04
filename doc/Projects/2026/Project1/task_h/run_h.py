@@ -9,7 +9,7 @@ from configuration import (
 from minibatch_comparison import run_minibatch_experiment
 from excesscost_cv_validation import run_cv_experiment
 
-SAVE_FIGURES = False 
+SAVE_FIGURES = True 
 
 if __name__ == "__main__":
     if RUN_MINIBATCH:

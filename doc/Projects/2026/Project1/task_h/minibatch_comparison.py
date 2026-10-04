@@ -18,7 +18,7 @@ schedules = {
     "Fast Decay (t0=10.0, t1=100)": {"gamma": 0.1, "schedule": (10.0, 100.0)},
 }
 
-def run_minibatch_experiment(save_figures = False):
+def run_minibatch_experiment(save_figures = True):
     #generating the data not using the returnes x (_)
     x10_full, X10_full, y10_full = runge_data(degree=COMMON['degree'], noise=COMMON['noise'], seed=COMMON['seed'])
 
@@ -60,7 +60,7 @@ def run_minibatch_experiment(save_figures = False):
         evaluations = np.arange(len(excess_train)) * n_train
         results[b_size] = (evaluations, excess_train, test_cost, history[-1])
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5), dpi=120)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5), dpi=300)
 
     for b_size in batch_sizes:
         evaluations, excess_train, test_cost, _ = results[b_size]
@@ -111,7 +111,7 @@ def run_minibatch_experiment(save_figures = False):
             schedule_results[name] = (evaluations, excess_train)
 
         #plotting the current batch size
-        fig, ax = plt.subplots(figsize=(9, 6), dpi=120)
+        fig, ax = plt.subplots(figsize=(9, 6), dpi=300)
 
         for name, (evals, excess_train) in schedule_results.items():
             ax.semilogy(evals, np.maximum(excess_train, 1e-16), linewidth=2, label=name)
@@ -143,7 +143,7 @@ def run_minibatch_experiment(save_figures = False):
         + COMMON['noise'] * rng.standard_normal(len(x10_full))
     )
 
-    fig, ax = plt.subplots(figsize=(9, 6), dpi=120)
+    fig, ax = plt.subplots(figsize=(9, 6), dpi=300)
     ax.scatter(x10_full, y10_full + y_offset, s=18, alpha=0.5, label="Noisy data")
     ax.plot(
         x_grid, 1.0 / (1.0 + 25.0 * x_grid**2),
