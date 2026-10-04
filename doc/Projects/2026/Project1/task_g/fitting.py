@@ -6,7 +6,7 @@ from sklearn.linear_model import Lasso
 from data import runge_data, optimiser_step, optimise, lasso_subgradient, cost_mse, grad_ols, grad_ridge, grad_lasso_subgradient, optimiser_step_adam, optimise_adam
 from config import BLUE, RED, YELLOW, GREEN, GREY, GREY, CONFIG
 
-def main_fit(save_figure=False):
+def main_fit(save_figure=True):
     degree = CONFIG["degree"]
     lam = CONFIG["lam"]
     gamma = CONFIG["gamma"]
@@ -60,7 +60,7 @@ def main_fit(save_figure=False):
             writer.writerow(['Scikit-Learn Lasso', mse_sk_train, mse_sk_test])
 
     # plotting two subplots, one with coefficients comparison and the other one with model fits vs. the raw data 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5), dpi = 120)
+    fig, axes = plt.subplots(2, 1, figsize=(10, 10), dpi = 300)
 
     #Coefficient Comparison Across Degrees
     degrees = np.arange(1, degree + 1)
