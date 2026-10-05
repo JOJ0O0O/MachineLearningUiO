@@ -5,6 +5,10 @@ from data import runge_data
 from config import BLUE, RED, YELLOW, GREY, CONFIG, SAVE_FIGURE
 from kfold_sklearn import kfold_function
 
+'''
+AI declaration: AI was used to add comments to this script. As this scripts only put already existing files together, AI only fixerd bugs and helped 
+to interpret error messages. It also build the main structure of the plots and the printed outputs!
+'''
 def plot_ols_cv(Save_figure = False):
     # Extract degrees to evaluate from the configuration
     degrees = CONFIG["degree"]
