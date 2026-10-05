@@ -10,8 +10,8 @@ from config import BLUE, RED, YELLOW, GREEN, GREY, GREY, CONFIG
 AI decleration: We used AI to fix the code, also to build a clear structure (Providing ideas on the following 
 topics: The number of scripts, the most comfortable structure for someone else 
 to use and understand the code)
-from a jupyter notebook. No code was generated from scratch,
-just fixes and optimization.
+from a jupyter notebook. No code was generated from scratch, except from plotting it was only used for fixes and optimization.
+The basic plot structure was created by AI, and then we added and optimized the look!
 '''
 def main_fit(save_figure=True):
     degree = CONFIG["degree"]
