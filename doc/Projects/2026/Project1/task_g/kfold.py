@@ -6,6 +6,10 @@ from sklearn.linear_model import Lasso
 from config import CONFIG, BLUE
 from data import runge_data, optimise_adam, grad_lasso_subgradient, cost_mse, grad_ols, grad_ridge
 
+'''
+AI declaration: AI was only used to print the results in a easy understandable way and to safe time. 
+It was not used on algorithms but for fixing problems.
+'''
 np.set_printoptions(precision=4, suppress=True)
 
 def kfold_function():

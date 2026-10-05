@@ -3,6 +3,12 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from sklearn.model_selection import KFold
 
+'''
+AI declaration: AI was used to strucutre those scripts for a better user interaction. It was used for bugs and also for the structure of the 
+loops, as the previous idea was not working properly. 
+AI build the structure of the plots, afterwards we optimized them by adding boxes, legends etc.
+'''
+
 #import shared utilities and configs based on the project structure
 from model_definition_data_generation import runge_data, closed_form, cost, sgd, optimise, gradient
 from configuration import RED, GREY, COMMON, CROSS_VALIDATION

@@ -2,6 +2,11 @@ import numpy as np
 from sklearn.model_selection import KFold
 from config import CONFIG
 
+'''
+AI delcaration: AI was used for chaning our own kfold implementation to the sklearn implementation, as it runs natively in C/Cython and is 
+therefore much faster than our own implementation. This was necessary, because during our 
+first run with our own Lasso Code we could not receivve any results!
+'''
 np.set_printoptions(precision=4, suppress=True)
 
 def kfold_function(X_raw, y_raw, model):

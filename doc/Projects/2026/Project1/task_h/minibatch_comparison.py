@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+'''
+AI declaration: AI was used for fixing the output files. It build the structure of the plotting and fixed the bugs on the script.
+It mostly build the section for visiual comparison. However, no data was created there as it just used the previous results (line: 137-177).
+'''
 
 #import shared utilities and configs based on the project structure
 from model_definition_data_generation import runge_data, closed_form, cost, sgd, optimise, gradient
