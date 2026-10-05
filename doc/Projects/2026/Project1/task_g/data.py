@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Lasso
 from config import CONFIG
 
+#getting data from the config file 
 n_samples = CONFIG["n_samples"]
 degree = CONFIG["degree"]
 lam = CONFIG["lam"]
