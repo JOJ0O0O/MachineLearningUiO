@@ -6,6 +6,13 @@ from sklearn.linear_model import Lasso
 from data import runge_data, optimiser_step, optimise, lasso_subgradient, cost_mse, grad_ols, grad_ridge, grad_lasso_subgradient, optimiser_step_adam, optimise_adam
 from config import BLUE, RED, YELLOW, GREEN, GREY, GREY, CONFIG
 
+'''
+AI decleration: We used AI to fix the code, also to build a clear structure (Providing ideas on the following 
+topics: The number of scripts, the most comfortable structure for someone else 
+to use and understand the code)
+from a jupyter notebook. No code was generated from scratch,
+just fixes and optimization.
+'''
 def main_fit(save_figure=True):
     degree = CONFIG["degree"]
     lam = CONFIG["lam"]
