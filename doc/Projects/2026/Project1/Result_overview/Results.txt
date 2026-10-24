@@ -1,0 +1,164 @@
+This is a short overview taken mostly from the Jupyter notebook "Project1.ipynb"
+
+Task a)
+
+The optimal polynomial degree is:  8
+The MSE for the optimal polynomial degree is:  0.018711534420669966
+For the coefficients of the individual polynomial regressions, please refer to "thetas.txt"
+
+Task b)
+
+Optimal degree: 8
+The best lambda, measured by having the lowest MSE is:  0.0017575106248547913.
+The corresponding test MSE is:  0.017657951222743967.
+--> No CV --> unreliable
+
+
+(Proof of Ridge suppressing all predictions / theta --> 0):
+The highest MSE value is: 0.1311240983660469.
+The lowest R2 value is: -0.05866464089835244.
+
+Task c)
+Bootsraped results --> more meaning
+n= 50: optimal degree = 8.
+n=200: optimal degree = 15.
+n = 450: optimal degree = 450.
+
+Task d)
+Cross validated results:
+n=200, k=5: Optimal degree = 12.
+n=200, k=10: Optimal degree = 14.
+
+Task e) 
+
+Study of convergence of both AD and analytical:
+
+OLS   max |AD - analytic| = 5.551115123125783e-17.
+Ridge max |AD - analytic| = 1.1102230246251565e-16.
+
+Calculated parameters to optimize convergence / stability:
+lam_min for OLS  = 0.0109.
+lam_max for OLS  = 5.6527.
+gamma_max for OLS  = 0.3538.
+gamma* for OLS = 0.3531.
+lam_min for Ridge = 0.2109.
+lam_max for Ridge = 5.8527.
+gamma_max for Ridge = 0.3417.
+gamma* for Ridge = 0.3298.
+
+Task f)
+
+Given are the different Method with Learning Rates and Steps to Convergence
+
+Steps to convergence for different learning rates in plain gradient descent for OLS and Ridge regression.
+
+ Method & Learning Rate & Steps to Convergence 
+ OLS & 0.1000 * gamma_max = 0.0354 & did not converge 
+    & 0.5000 * gamma_max = 0.1769 & 7406 
+    & 0.9000 * gamma_max = 0.3184 & 4112  
+    & 0.9900 * gamma_max = 0.3503 & 3737  
+    & 0.9981 * gamma_max = 0.3531 & 3728  
+
+Ridge & 0.1000 * gamma_max = 0.0342& 1959  
+    & 0.5000 * gamma_max = 0.1709 & 386  
+    & 0.9000 * gamma_max = 0.3075 & 212  
+    & 0.9900 * gamma_max = 0.3383 & 662  
+    & 0.9652 * gamma_max = 0.3298 & 198  
+
+
+Steps to convergence for different learning rates in momentum gradient descent for OLS and Ridge regression
+
+ OLS & 0.1000 * gamma_max = 0.0354 & 3576  
+    & 0.5000 * gamma_max = 0.1769 & 578  
+    & 0.9000 * gamma_max = 0.3184 & 280  
+    & 0.9900 * gamma_max = 0.3503 & 285  
+    & 0.9981 * gamma_max = 0.3531 & 285  
+
+ Ridge & 0.1000 * gamma_max = 0.0342& 276  
+    & 0.5000 * gamma_max = 0.1709& 272  
+    & 0.9000 * gamma_max = 0.3075& 251  
+    & 0.9900 * gamma_max = 0.3383& 269  
+    & 0.9652 * gamma_max = 0.3298& 272  
+
+Steps to convergence for different learning rates in adagrad gradient descent for OLS and Ridge regression.
+
+ OLS & 0.1000 * gamma_max = 0.0354 & did not converge  
+    & 0.5000 * gamma_max = 0.1769 & 14827  
+    & 0.9000 * gamma_max = 0.3184 & 7450  
+    & 0.9900 * gamma_max = 0.3503 & 6843  
+    & 0.9981 * gamma_max = 0.3531 & 6798  
+
+ Ridge & 0.1000 * gamma_max = 0.0342& 19261  
+    & 0.5000 * gamma_max = 0.1709& 1135  
+    & 0.9000 * gamma_max = 0.3075& 477  
+    & 0.9900 * gamma_max = 0.3383& 424  
+    & 0.9652 * gamma_max = 0.3298& 437
+
+
+Steps to convergence for different learning rates in rmsprop gradient descent for OLS and Ridge regression.
+
+ OLS & 0.1000 * gamma_max = 0.0354 & did not converge  
+ & 0.5000 * gamma_max = 0.1769 & did not converge  
+ & 0.9000 * gamma_max = 0.3184 & did not converge  
+ & 0.9900 * gamma_max = 0.3503 & did not converge  
+ & 0.9981 * gamma_max = 0.3531 & did not converge  
+
+ Ridge & 0.1000 * gamma_max = 0.0342& did not converge  
+ & 0.5000 * gamma_max = 0.1709& did not converge  
+ & 0.9000 * gamma_max = 0.3075& did not converge  
+ & 0.9900 * gamma_max = 0.3383& did not converge  
+ & 0.9652 * gamma_max = 0.3298& did not converge  
+endtabular
+
+
+
+Steps to convergence for different learning rates in adam gradient descent for OLS and Ridge regression.
+
+ OLS & 0.1000 * gamma_max = 0.0354 & 2518  
+ & 0.5000 * gamma_max = 0.1769 & 925  
+ & 0.9000 * gamma_max = 0.3184 & 648  
+ & 0.9900 * gamma_max = 0.3503 & 611  
+ & 0.9981 * gamma_max = 0.3531 & 608  
+    
+ Ridge & 0.1000 * gamma_max = 0.0342& 419  
+ & 0.5000 * gamma_max = 0.1709& 262  
+ & 0.9000 * gamma_max = 0.3075& 263  
+ & 0.9900 * gamma_max = 0.3383& 268  
+ & 0.9652 * gamma_max = 0.3298& 257  
+
+Task g)
+
+Method,Train MSE,Test MSE
+OLS (Adam GD),0.012251898785348832,0.016999144331861435
+Ridge (Adam GD),0.019765738198597192,0.023125127750283258
+Custom Lasso (Subgrad GD),0.016357138728706817,0.02036959210516352
+Scikit-Learn Lasso,0.016473281708986747,0.020455288871907472
+
+Calculated Coefficients:
+Degree,Custom Lasso,Sklearn,OLS,Ridge 
+x^1,-0.030,-0.031,-0.026,-0.035
+x^2,-1.363,-1.353,-2.073,-1.046
+x^3,0.061,0.061,-0.166,0.057
+x^4,2.567,2.523,5.520,1.344
+x^5,0.001,0.000,0.782,0.040
+x^6,-1.657,-1.609,-5.215,-0.158
+x^7,0.000,0.000,-0.955,-0.030
+x^8,-0.001,0.000,0.620,-0.472
+x^9,-0.036,-0.036,0.372,-0.041
+x^{10},0.232,0.217,0.935,0.111
+
+Task h)
+
+For plotted results of task h please refer to the folder task_h/figures.
+A comparison using CV and different SGD minibatch sizes was done for different number if epochs.
+This resulted in higher noise levels for smaller minibatches, who however had the advantage of easier gradient calculations.
+
+Task i)
+
+Selected degree: 15.
+Ridge lambda: 2.44e-05.
+Lasso lambda: 1e-10.
+Ridge showed slightly better results than Lasso for nearly all degrees. 
+OLS started heavily overfitting after degree 17.
+
+For more detailed results please refer to the handed in report, the Jupyter notebook Project1.ipynb or the individual files saved in the task_g, task_h or task_i folders.
