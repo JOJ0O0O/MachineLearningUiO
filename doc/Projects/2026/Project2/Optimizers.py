@@ -1,5 +1,15 @@
 import numpy as np
 
+class PlainGDOptimizer:
+    """Turns a list of gradients into a list of updates; knows nothing about the network."""
+
+    def __init__(self, gamma):
+        self.gamma = gamma
+
+    def step(self, layer_grads):
+        return [(self.gamma * dW, self.gamma * db) for (dW, db) in layer_grads]
+
+
 class MomentumOptimizer:
     """Turns a list of gradients into a list of updates; knows nothing about the network."""
 
@@ -14,7 +24,12 @@ class MomentumOptimizer:
         return self.velocity
 
 class AdamOptimizer:
-    """Turns a list of gradients into a list of updates, no knowledge of the network"""
+    """
+    Turns a list of gradients into a list of updates, no knowledge of the network
+    gamma: Learning rate
+    beta1: Adam parameter. Default value = 0.9.
+    beta2: Adam parameter. Default value = 0.999.
+    """
 
     def __init__(self, gamma, beta1 = 0.9, beta2 = 0.999):
         self.gamma, self.beta1, self.beta2, self.r, self.m, self.t = gamma, beta1, beta2, None, None, 1
@@ -41,12 +56,19 @@ class AdamOptimizer:
         return update
 
 class RMSPropOptimizer:
-    """Turns a list of gradients into a list of updates; knows nothing about the network."""
+    """
+    Turns a list of gradients into a list of updates; knows nothing about the network.
+    gamma: Learning rate
+    beta: adjustable RMSProp property. Default value: 0.9 
+    """
 
     def __init__(self, gamma, beta=0.9):
         self.gamma, self.beta, self.v = gamma, beta, None
 
     def step(self, layer_grads):
+        """
+        Calculates the update for a single RMSProp step given the gradients of the weights and biases of every layer
+        """
         if self.v is None:
             self.v = [(np.zeros_like(dW), np.zeros_like(db)) for dW, db in layer_grads]
         self.v = [(self.beta * vW + (1- self.beta) * dW * dW, self.beta * vb + (1- self.beta) * db * db)

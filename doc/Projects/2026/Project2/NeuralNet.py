@@ -94,7 +94,6 @@ class NeuralNetwork:
     def train(self, inputs, targets, epochs, sgd = True):
         """Train the model using the input optimizer"""
         if(sgd):
-            print(len(inputs))
             rng = np.random.default_rng(2026)
             for _ in range(epochs):
                 for batch in self.shuffeled_batches(len(inputs), 128, rng):
@@ -125,7 +124,9 @@ class NeuralNetwork:
     def jax_gradient(self, inputs, targets):
         if self.regularization == "L1":
             def cost_of_layers(layers):
-                return self.cost_fun(self.jax_compliant_predict(layers, inputs), targets) + self.lam * sum(sum(sum(jnp.abs(W))) + sum(jnp.abs(b)) for (W, b) in layers)
+                return self.cost_fun(self.jax_compliant_predict(layers, inputs), targets) + self.lam * sum(
+                                                                                            jnp.sum(jnp.where(W == 0, 0.0, jnp.abs(W)))
+                                                                                            + jnp.sum(jnp.where(b == 0, 0.0, jnp.abs(b))) for (W, b) in layers)
             return jax.grad(cost_of_layers)(self.layers)
         elif self.regularization == "L2":
             def cost_of_layers(layers):
