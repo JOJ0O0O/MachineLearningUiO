@@ -40,4 +40,18 @@ class AdamOptimizer:
 
         return update
 
+class RMSPropOptimizer:
+    """Turns a list of gradients into a list of updates; knows nothing about the network."""
+
+    def __init__(self, gamma, beta=0.9):
+        self.gamma, self.beta, self.v = gamma, beta, None
+
+    def step(self, layer_grads):
+        if self.v is None:
+            self.v = [(np.zeros_like(dW), np.zeros_like(db)) for dW, db in layer_grads]
+        self.v = [(self.beta * vW + (1- self.beta) * dW * dW, self.beta * vb + (1- self.beta) * db * db)
+                         for (vW, vb), (dW, db) in zip(self.v, layer_grads)]
+        step = [(self.gamma / np.sqrt((vW + 1e-10)) * dW, self.gamma / np.sqrt((vb + 1e-10)) * db)
+                         for (vW, vb), (dW, db) in zip(self.v, layer_grads)]
+        return step
 

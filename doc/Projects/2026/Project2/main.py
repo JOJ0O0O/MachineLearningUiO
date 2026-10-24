@@ -77,13 +77,33 @@ xx = xx.reshape(-1,1)
 
 """ Set up done """
 
-TestAdam = opt.AdamOptimizer(gamma=0.01)
-TestNet = NN.NeuralNetwork(xtrain.shape[1], [30,30,1], [act.ReLU, act.sigmoid, act.sigmoid], act.mse, optimizer=TestAdam)
+TestAdam = opt.RMSPropOptimizer(gamma=0.01)
+TestNet = NN.NeuralNetwork(xtrain.shape[1],
+                        [30,30,1], 
+                        [act.ReLU, act.sigmoid, act.sigmoid], 
+                        act.mse, 
+                        optimizer=TestAdam,
+                        regularization="L2",
+                        lam=0.001)
+
+TestAdamJax = opt.RMSPropOptimizer(gamma=0.01)
+TestNetJax = NN.NeuralNetwork(xtrain.shape[1],
+                        [30,30,1], 
+                        [act.ReLU, act.sigmoid, act.sigmoid], 
+                        act.mse, 
+                        optimizer=TestAdamJax,
+                        regularization="L2",
+                        lam=0.001)
 
 TestNet.train(xtrain, ytrain, 1000)
+TestNetJax.train_jax(xtrain, ytrain, 1000)
 
+
+"""Build simple model to predict a range of x values to see if jax and own gradient produces the same"""
 ypred = TestNet.predict(xTest)
 yxx = TestNet.predict(xx)
-print(ypred)
-fig = plt.plot(xx,yxx)
+yxxjax = TestNetJax.predict(xx)
+
+plt.plot(xx,yxx)
+plt.plot(xx,yxxjax)
 plt.show()
