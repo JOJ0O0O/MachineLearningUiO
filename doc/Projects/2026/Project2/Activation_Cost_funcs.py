@@ -39,6 +39,7 @@ def mse_der(predict, target):
     return 2 * (predict - target) / predict.size
 
 dict_act_der = {ReLU : ReLU_der,
-                sigmoid: sigmoid_der}
+                sigmoid: sigmoid_der,
+                softmax: None}
 
 dict_cost_der = {mse : mse_der}
