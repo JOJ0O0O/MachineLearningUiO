@@ -5,6 +5,8 @@ import Activation_Cost_funcs as act
 import Optimizers as opt
 import matplotlib.pyplot as plt
 
+from exercise_e import exercise_e
+
 """Set up data from Project 1"""
 
 def runge(x):
@@ -87,3 +89,6 @@ yxx = TestNet.predict(xx)
 print(ypred)
 fig = plt.plot(xx,yxx)
 plt.show()
+
+# execute exercise e (multiclass classifier on mnist.npz dataset)
+exercise_e()
