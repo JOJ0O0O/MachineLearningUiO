@@ -25,6 +25,12 @@ class NeuralNetwork:
                        for n_in, n_out in zip(sizes[:-1], sizes[1:])]
         self.optimizer = optimizer
 
+    def get_weights(self):
+        return self.layers
+    
+    def set_weights(self, new_weights):
+        self.layers = new_weights
+
     def predict(self, inputs):
         # Simple feed forward pass
         return self.jax_compliant_predict(self.layers, inputs)
