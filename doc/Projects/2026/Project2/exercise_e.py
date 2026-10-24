@@ -1,0 +1,183 @@
+from re import match
+import urllib.request
+import os
+
+import NeuralNet as NN
+
+import numpy as np
+
+import sklearn
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import accuracy_score
+
+import Activation_Cost_funcs as act
+import Optimizers as opt
+import matplotlib.pyplot as plt
+
+def save_weights(layers, filename):
+    """
+    Save the weights and biases of all layers to an .npz file.
+
+    Parameters
+    ----------
+    layers : list of tuples (W, b), weights and biases of each layer
+    filename : str, path of the .npz file
+
+    LLM-assisted
+    ------------
+    Tool: Claude (Claude Opus 5.5, claude.ai, Oct 2026)
+    Role: Provided the function; stores each array under its own key (W0, b0, W1, ...)
+    to avoid saving a ragged list with np.savez.
+    Modifications: Integrated and tested by the author (save/load round trip).
+    """
+    arrays = {}
+    for i, (W, b) in enumerate(layers):
+        arrays[f"W{i}"] = np.asarray(W)
+        arrays[f"b{i}"] = np.asarray(b)
+
+    np.savez(filename, **arrays)
+
+
+def load_weights(filename):
+    """
+    Load the weights and biases saved by save_weights.
+
+    Parameters
+    ----------
+    filename : str, path of the .npz file
+
+    Returns
+    -------
+    list of tuples (W, b), weights and biases of each layer
+
+    LLM-assisted
+    ------------
+    Tool: Claude (Claude Opus 5.5, claude.ai, Oct 2026)
+    Role: Provided the function; reconstructs the layer list from the W{i}/b{i} keys.
+    Modifications: Integrated and tested by the author (save/load round trip).
+    """
+    with np.load(filename) as data:
+        n_layers = len(data.files) // 2
+        return [(data[f"W{i}"], data[f"b{i}"]) for i in range(n_layers)]
+
+    
+def choose_load_weights_from_file(filename):
+    choice = input(f"Do you want to load weights and biases from {os.path.basename(filename)}? (y/n)").strip().lower()
+    match choice:
+        case 'y':
+            weights = load_weights(filename)
+            return weights
+        case 'n':
+            return None
+        case _:
+            print("Invalid choice. Please enter 'y' or 'n'.")
+            choose_load_weights_from_file(filename)  # Recursive call until valid input is received
+    return
+
+def choose_save_weights_to_file(weights, filename):
+    choice = input(f"Do you want to save the trained weights and biases to {os.path.basename(filename)}? (y/n)").strip().lower()
+    match choice:
+        case 'y':
+            save_weights(weights, filename)
+        case 'n':
+            pass
+        case _:
+            print("Invalid choice. Please enter 'y' or 'n'.")
+            choose_save_weights_to_file(weights, filename)  # Recursive call until valid input is received
+    return
+
+def exercise_e(
+        url = "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz",
+        architecture : dict[str, list[int] | list[callable]] = {
+            "layer_output_sizes": [64, 64, 10],  # 2 hidden layers with 64 neurons each, and an output layer with 10 neurons (for 10 classes of digits)
+            "activations": [act.ReLU, act.ReLU, act.softmax],   # activation functions for each layer (ReLU for hidden layers, softmax for output layer)
+        },
+        seed = 2026,
+        weight_file = "weights_exercise_e.npz",
+        training_epochs = 10
+):
+    """
+    Method executes exercise e (Multiclass classification using neural networks)
+
+    Parameters
+    ----------
+    url : String, url link to the used data set; default: MNIST data set (handwritten numbers from 1 to 10)
+    architecture : dict, defines the architecture of the used neural network to classify the data set
+        - "layer_output_sizes": list of integers, defines the number of neurons in each layer (excluding input layer)
+        - "activations": list of callable activation functions, defines the activation function for each layer (excluding input layer)
+    seed : int, random seed for reproducibility; default: 2026
+
+    Returns
+    ------- 
+    None
+    """
+
+    # verify that the mnist dataset exist and download otherwise
+    if not os.path.exists("mnist.npz"):
+        urllib.request.urlretrieve(url, "mnist.npz")
+
+    #extract data and scale pixel values to [0,1] range
+    with np.load("mnist.npz") as data:
+        x_train = data["x_train"].reshape(len(data["x_train"]), -1) / 255.0
+        y_train = data["y_train"]
+        x_test = data["x_test"].reshape(len(data["x_test"]), -1) / 255.0
+        y_test = data["y_test"]
+
+     # LLM (Claude Opus 5.5, Oct 2026): identified a shape mismatch between the softmax output (N, 10)
+    # and the integer labels (N,) in output_error. One-hot encoding implemented by the author;
+    # shapes verified via print statements before training.
+    n_classes = architecture["layer_output_sizes"][-1]
+    y_train_onehot = np.eye(n_classes)[y_train]
+    y_test_onehot = np.eye(n_classes)[y_test]
+
+    """print("x_train shape:", x_train.shape)
+    print("y_train_onehot shape:", y_train_onehot.shape)
+    print("x_test shape:", x_test.shape)
+    print("y_test_onehot shape:", y_test_onehot.shape)"""
+
+    if architecture["activations"][-1] == act.softmax:
+        def output_error(predict, target):
+            """
+            Computes the error for the output layer when using softmax activation and cross-entropy loss.
+            This is the special case where the derivative of the output layer simplifies to (a - y).
+            """
+            return predict - target
+    else:
+        output_error = None
+
+    mc_classifier = NN.NeuralNetwork(
+        network_input_size=x_train.shape[1],
+        layer_output_sizes=architecture["layer_output_sizes"],
+        activation_funcs=architecture["activations"],
+        cost_fun=act.mse,
+        optimizer=opt.AdamOptimizer(gamma=0.001),
+        output_error=output_error,
+        seed=seed
+    )
+
+    # LLM (Claude Opus 5.5, Oct 2026): suggested resolving the path relative to the script's
+    # own folder so that it does not depend on the working directory; verified by the author.
+    base = os.path.dirname(os.path.abspath(__file__))
+    weight_file_path = os.path.join(base, weight_file)
+
+    if os.path.exists(weight_file_path):
+        weights = choose_load_weights_from_file(weight_file_path)
+
+        if weights is not None:
+            if architecture["layer_output_sizes"] != [w.shape[1] for w, _ in weights]:
+                raise Exception("The loaded weights do not match the specified architecture. Please check the architecture or choose not to load weights.")
+                
+            mc_classifier.set_weights(weights)
+        else:
+            mc_classifier.train(x_train, y_train_onehot, epochs=training_epochs)
+            choose_save_weights_to_file(mc_classifier.get_weights(), weight_file_path)
+
+    else:
+        mc_classifier.train(x_train, y_train_onehot, epochs=training_epochs)
+        choose_save_weights_to_file(mc_classifier.get_weights(), weight_file_path)
+    
+
+    return 
+
+if __name__ == "__main__":
+    exercise_e()
