@@ -71,20 +71,43 @@ class NeuralNetwork:
         
         return layer_grads
 
-    def train_jax(self, inputs, targets, epochs):
+    def train_jax(self, inputs, targets, epochs, sgd = True):
         """Train the model using the input optimizer and jax"""
-        for _ in range(epochs):
-            grad = self.jax_gradient(inputs, targets)
-            step = self.optimizer.step(grad)
-            self.update_weights(step)
+        """Note: Consider using time decay and early stopping in sgd???"""
+        if(sgd):
+            rng = np.random.default_rng(2026)
+            for _ in range(epochs):
+                
+                for batch in self.shuffeled_batches(len(inputs), 128, rng):
+                    grad = self.jax_gradient(inputs[batch], targets[batch])
+                    step = self.optimizer.step(grad)
+                    self.update_weights(step)
+
+        else:
+            for _ in range(epochs):
+                grad = self.jax_gradient(inputs, targets)
+                step = self.optimizer.step(grad)
+                self.update_weights(step)
+        
         print("Training with ", epochs, " epochs is done.")
 
-    def train(self, inputs, targets, epochs):
+    def train(self, inputs, targets, epochs, sgd = True):
         """Train the model using the input optimizer"""
-        for _ in range(epochs):
-            grad = self.compute_gradient(inputs, targets)
-            step = self.optimizer.step(grad)
-            self.update_weights(step)
+        if(sgd):
+            print(len(inputs))
+            rng = np.random.default_rng(2026)
+            for _ in range(epochs):
+                for batch in self.shuffeled_batches(len(inputs), 128, rng):
+                    grad = self.compute_gradient(inputs[batch], targets[batch])
+                    step = self.optimizer.step(grad)
+                    self.update_weights(step)
+
+        else:
+            for _ in range(epochs):
+                grad = self.compute_gradient(inputs, targets)
+                step = self.optimizer.step(grad)
+                self.update_weights(step)
+
         print("Training with ", epochs, " epochs is done.")
 
     def update_weights(self, layer_updates):
@@ -100,7 +123,6 @@ class NeuralNetwork:
         return a
 
     def jax_gradient(self, inputs, targets):
-        
         if self.regularization == "L1":
             def cost_of_layers(layers):
                 return self.cost_fun(self.jax_compliant_predict(layers, inputs), targets) + self.lam * sum(sum(sum(jnp.abs(W))) + sum(jnp.abs(b)) for (W, b) in layers)
@@ -113,3 +135,9 @@ class NeuralNetwork:
             def cost_of_layers(layers):
                         return self.cost_fun(self.jax_compliant_predict(layers, inputs), targets)
             return jax.grad(cost_of_layers)(self.layers)
+
+    @staticmethod
+    def shuffeled_batches(n, M, rng):
+        idx = rng.permutation(n)
+        for k in range(0, n, M):
+            yield idx[k:k + M]

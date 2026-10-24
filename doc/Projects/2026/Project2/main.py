@@ -77,33 +77,42 @@ xx = xx.reshape(-1,1)
 
 """ Set up done """
 
-TestAdam = opt.RMSPropOptimizer(gamma=0.01)
-TestNet = NN.NeuralNetwork(xtrain.shape[1],
-                        [30,30,1], 
-                        [act.ReLU, act.sigmoid, act.sigmoid], 
-                        act.mse, 
-                        optimizer=TestAdam,
-                        regularization="L2",
-                        lam=0.001)
+def BuildTestNets():
+    """
+    Test function to see if Neural Network implementation works
+    Calls both Jax and non-Jax implementation of backpropagation
+    """
+    TestAdam = opt.RMSPropOptimizer(gamma=0.01)
+    TestNet = NN.NeuralNetwork(xtrain.shape[1],
+                            [30,30,1], 
+                            [act.ReLU, act.sigmoid, act.sigmoid], 
+                            act.mse, 
+                            optimizer=TestAdam,
+                            regularization="L1",
+                            lam=0.001)
 
-TestAdamJax = opt.RMSPropOptimizer(gamma=0.01)
-TestNetJax = NN.NeuralNetwork(xtrain.shape[1],
-                        [30,30,1], 
-                        [act.ReLU, act.sigmoid, act.sigmoid], 
-                        act.mse, 
-                        optimizer=TestAdamJax,
-                        regularization="L2",
-                        lam=0.001)
+    TestAdamJax = opt.RMSPropOptimizer(gamma=0.01)
+    TestNetJax = NN.NeuralNetwork(xtrain.shape[1],
+                            [30,30,1], 
+                            [act.ReLU, act.sigmoid, act.sigmoid], 
+                            act.mse, 
+                            optimizer=TestAdamJax,
+                            regularization="L1",
+                            lam=0.001)
 
-TestNet.train(xtrain, ytrain, 1000)
-TestNetJax.train_jax(xtrain, ytrain, 1000)
+    TestNet.train(xtrain, ytrain, 1000)
+    TestNetJax.train_jax(xtrain, ytrain, 1000)
 
 
-"""Build simple model to predict a range of x values to see if jax and own gradient produces the same"""
-ypred = TestNet.predict(xTest)
-yxx = TestNet.predict(xx)
-yxxjax = TestNetJax.predict(xx)
+    """Build simple model to predict a range of x values to see if jax and own gradient produces the same"""
+    ypred = TestNet.predict(xTest)
+    yxx = TestNet.predict(xx)
+    yxxjax = TestNetJax.predict(xx)
 
-plt.plot(xx,yxx)
-plt.plot(xx,yxxjax)
-plt.show()
+    plt.plot(xx,yxx)
+    plt.plot(xx,yxxjax)
+    plt.show()
+
+
+if __name__ == "__main__":
+    BuildTestNets()
