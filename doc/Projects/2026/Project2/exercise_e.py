@@ -8,13 +8,15 @@ import numpy as np
 
 import sklearn
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, ConfusionMatrixDisplay, confusion_matrix as sk_confusion_matrix
 
 import Activation_Cost_funcs as act
 import Optimizers as opt
 import matplotlib.pyplot as plt
 
-def save_weights(layers, filename):
+from tqdm import tqdm
+
+def save_weights(layers, epochs, filename):
     """
     Save the weights and biases of all layers to an .npz file.
 
@@ -34,7 +36,7 @@ def save_weights(layers, filename):
     for i, (W, b) in enumerate(layers):
         arrays[f"W{i}"] = np.asarray(W)
         arrays[f"b{i}"] = np.asarray(b)
-
+    arrays["epochs"] = epochs
     np.savez(filename, **arrays)
 
 
@@ -58,32 +60,36 @@ def load_weights(filename):
     """
     with np.load(filename) as data:
         n_layers = len(data.files) // 2
-        return [(data[f"W{i}"], data[f"b{i}"]) for i in range(n_layers)]
+        return [(data[f"W{i}"], data[f"b{i}"]) for i in range(n_layers)], data["epochs"]
 
     
-def choose_load_weights_from_file(filename):
-    choice = input(f"Do you want to load weights and biases from {os.path.basename(filename)}? (y/n)").strip().lower()
+def choose_load_weights_from_file(epochs, filename):
+    choice = input(f"Do you want to load weights and biases from {os.path.basename(filename)}? (y/n)",).strip().lower()
     match choice:
         case 'y':
-            weights = load_weights(filename)
-            return weights
+            print(f"\rLoading weights and biases from {os.path.basename(filename)}...", end="")
+            weights, epochs = load_weights(filename)
+            print(f"\rWeights and biases loaded from {os.path.basename(filename)}.")
+            return weights, epochs
         case 'n':
-            return None
+            return None, epochs
         case _:
             print("Invalid choice. Please enter 'y' or 'n'.")
             choose_load_weights_from_file(filename)  # Recursive call until valid input is received
     return
 
-def choose_save_weights_to_file(weights, filename):
+def choose_save_weights_to_file(weights, epochs, filename):
     choice = input(f"Do you want to save the trained weights and biases to {os.path.basename(filename)}? (y/n)").strip().lower()
     match choice:
         case 'y':
-            save_weights(weights, filename)
+            print(f"\rSaving weights and biases to {os.path.basename(filename)}...", end="")
+            save_weights(weights, epochs, filename)
+            print(f"\rWeights and biases saved to {os.path.basename(filename)}.")
         case 'n':
             pass
         case _:
             print("Invalid choice. Please enter 'y' or 'n'.")
-            choose_save_weights_to_file(weights, filename)  # Recursive call until valid input is received
+            choose_save_weights_to_file(weights, epochs, filename)  # Recursive call until valid input is received
     return
 
 def exercise_e(
@@ -94,7 +100,8 @@ def exercise_e(
         },
         seed = 2026,
         weight_file = "weights_exercise_e.npz",
-        training_epochs = 10
+        training_epochs = 1000,
+        confusion_matrix_filename = "confusion_matrix_exercise_e_1000_epochs_2_hidden_layer_64x64.pdf"
 ):
     """
     Method executes exercise e (Multiclass classification using neural networks)
@@ -106,6 +113,9 @@ def exercise_e(
         - "layer_output_sizes": list of integers, defines the number of neurons in each layer (excluding input layer)
         - "activations": list of callable activation functions, defines the activation function for each layer (excluding input layer)
     seed : int, random seed for reproducibility; default: 2026
+    weight_file : String, name of the .npz file to save/load the weights and biases of the trained model; default: "weights_exercise_e.npz"
+    training_epochs : int, number of epochs to train the model; default: 1000
+    confusion_matrix_filename : String, name of the file to save the confusion matrix plot; default: "confusion_matrix_exercise_e_1000_epochs_2_hidden_layer_64x64.pdf"
 
     Returns
     ------- 
@@ -161,7 +171,7 @@ def exercise_e(
     weight_file_path = os.path.join(base, weight_file)
 
     if os.path.exists(weight_file_path):
-        weights = choose_load_weights_from_file(weight_file_path)
+        weights, training_epochs = choose_load_weights_from_file(training_epochs, weight_file_path)
 
         if weights is not None:
             if architecture["layer_output_sizes"] != [w.shape[1] for w, _ in weights]:
@@ -169,15 +179,42 @@ def exercise_e(
                 
             mc_classifier.set_weights(weights)
         else:
+            print("No pre-trained weights loaded. Training the model from scratch...")
             mc_classifier.train(x_train, y_train_onehot, epochs=training_epochs)
-            choose_save_weights_to_file(mc_classifier.get_weights(), weight_file_path)
+            choose_save_weights_to_file(mc_classifier.get_weights(), training_epochs, weight_file_path)
 
     else:
+        print("No pre-trained weights found. Training the model from scratch...")
         mc_classifier.train(x_train, y_train_onehot, epochs=training_epochs)
-        choose_save_weights_to_file(mc_classifier.get_weights(), weight_file_path)
+        choose_save_weights_to_file(mc_classifier.get_weights(), training_epochs, weight_file_path)
     
+    # plot the multiclass confusion matrix for each run
+    y_pred_multi = np.argmax(mc_classifier.predict(x_test), axis=1)
+
+    cm_multi = sk_confusion_matrix(y_test, y_pred_multi)
+    print(cm_multi)
+    
+    fig, ax = plt.subplots(1, 1, figsize=(9, 3.6))
+
+    ConfusionMatrixDisplay(cm_multi, display_labels=[i for i in range(10)]).plot(ax=ax, colorbar=False)
+
+    print(f"Multiclass Classification Confusion Matrix (MNIST) - Epochs: {training_epochs}")
+
+    fig.suptitle(f"Multiclass Classification Confusion Matrix (MNIST) - Epochs: {training_epochs}")
+    fig.savefig(os.path.join(base, confusion_matrix_filename))
+    plt.tight_layout(); plt.legend();plt.show()
 
     return 
 
 if __name__ == "__main__":
     exercise_e()
+    exercise_e(
+        architecture = {
+            "layer_output_sizes": [10],  # 2 hidden layers with 64 neurons each, and an output layer with 10 neurons (for 10 classes of digits)
+            "activations": [act.softmax],   # activation functions for each layer (ReLU for hidden layers, softmax for output layer)
+        },
+        seed = 2026,
+        weight_file = "weights_exercise_e_linear_regression.npz",
+        training_epochs = 1000,
+        confusion_matrix_filename = "confusion_matrix_exercise_e_linear_regression.pdf"
+    )

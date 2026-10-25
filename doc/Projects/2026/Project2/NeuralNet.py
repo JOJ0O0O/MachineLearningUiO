@@ -2,6 +2,8 @@ import numpy as np
 import jax
 import Activation_Cost_funcs as acf
 
+from tqdm import tqdm
+
 
 class NeuralNetwork:
     def __init__(
@@ -69,14 +71,14 @@ class NeuralNetwork:
     def train_jax(self, inputs, targets, epochs):
         """Train the model using the input optimizer and jax"""
         grad = self.jax_gradient(self, inputs, targets)
-        for _ in range(epochs):
+        for _ in tqdm(range(epochs)):
             step = self.optimizer.step(grad)
             self.update_weights(step)
         print("Training with ", epochs, " epochs is done.")
 
     def train(self, inputs, targets, epochs):
         """Train the model using the input optimizer"""
-        for _ in range(epochs):
+        for _ in tqdm(range(epochs)):
             grad = self.compute_gradient(inputs, targets)
             step = self.optimizer.step(grad)
             self.update_weights(step)
