@@ -96,7 +96,7 @@ def choose_save_weights_to_file(weights, epochs, filename):
             choose_save_weights_to_file(weights, epochs, filename)  # Recursive call until valid input is received
     return
 
-def exercise_e(
+def multiclassifier(
         url = "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz",
         architecture : dict[str, list[int] | list[callable]] = {
             "layer_output_sizes": [64, 64, 10],  # 2 hidden layers with 64 neurons each, and an output layer with 10 neurons (for 10 classes of digits)
@@ -211,19 +211,50 @@ def exercise_e(
 
     fig.suptitle(f"Multiclass Classification Confusion Matrix (MNIST) - Epochs: {training_epochs}")
     fig.savefig(os.path.join(base, confusion_matrix_filename))
-    plt.tight_layout(); plt.legend();plt.show()
+    plt.tight_layout(); plt.show()
 
     return 
 
-if __name__ == "__main__":
-    exercise_e()
-    exercise_e(
+
+def exercise_e():
+    multiclassifier(
         architecture = {
-            "layer_output_sizes": [10],  # 2 hidden layers with 64 neurons each, and an output layer with 10 neurons (for 10 classes of digits)
-            "activations": [act.softmax],   # activation functions for each layer (ReLU for hidden layers, softmax for output layer)
+            "layer_output_sizes": [32, 32, 10],  # 2 hidden layers with 32 neurons each, and an output layer with 10 neurons (for 10 classes of digits)
+            "activations": [act.ReLU, act.ReLU, act.softmax],   # activation functions for each layer (ReLU for hidden layers, softmax for output layer)
+        },
+        seed = 2026,
+        weight_file = "weights_exercise_e_2000_epochs_2_hidden_layer_32x32.npz",
+        training_epochs = 2000,
+        confusion_matrix_filename = "confusion_matrix_exercise_e_2000_epochs_2_hidden_layer_32x32.pdf"
+    )
+
+    multiclassifier()
+
+    multiclassifier(
+        architecture = {
+            "layer_output_sizes": [64, 64, 64, 10],  # 3 hidden layers with 64 neurons each, and an output layer with 10 neurons (for 10 classes of digits)
+            "activations": [act.ReLU, act.ReLU, act.ReLU, act.softmax],   # activation functions for each layer (ReLU for hidden layers, softmax for output layer)
+        },
+        seed = 2026,
+        weight_file = "weights_exercise_e_1000_epochs_3_hidden_layer_64x64x64.npz",
+        training_epochs = 1000,
+        confusion_matrix_filename = "confusion_matrix_exercise_e_1000_epochs_3_hidden_layer_64x64x64.pdf"
+    )
+
+    multiclassifier(
+        architecture = {
+            "layer_output_sizes": [10],  # no hidden layer, linear regression
+            "activations": [act.softmax],   # activation functions for output layer
         },
         seed = 2026,
         weight_file = "weights_exercise_e_linear_regression.npz",
         training_epochs = 1000,
         confusion_matrix_filename = "confusion_matrix_exercise_e_linear_regression.pdf"
     )
+
+    return
+
+
+if __name__ == "__main__":
+    exercise_e()
+
