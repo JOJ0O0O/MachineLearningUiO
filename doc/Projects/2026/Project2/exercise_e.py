@@ -16,6 +16,10 @@ import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 
+
+def accuracy(y_true, y_pred):
+    return np.mean(y_true == y_pred)
+
 def save_weights(layers, epochs, filename):
     """
     Save the weights and biases of all layers to an .npz file.
@@ -159,7 +163,7 @@ def exercise_e(
         network_input_size=x_train.shape[1],
         layer_output_sizes=architecture["layer_output_sizes"],
         activation_funcs=architecture["activations"],
-        cost_fun=act.mse,
+        cost_fun=act.cross_entropy if architecture["activations"][-1] == act.softmax else act.mse,
         optimizer=opt.AdamOptimizer(gamma=0.001),
         output_error=output_error,
         seed=seed
@@ -187,12 +191,17 @@ def exercise_e(
         print("No pre-trained weights found. Training the model from scratch...")
         mc_classifier.train(x_train, y_train_onehot, epochs=training_epochs)
         choose_save_weights_to_file(mc_classifier.get_weights(), training_epochs, weight_file_path)
-    
+
+    training_loss = mc_classifier.cost(x_train, y_train_onehot)
+    print(f"Training Loss (MNIST) - Epochs: {training_epochs}: {training_loss:.4f}")
+
     # plot the multiclass confusion matrix for each run
     y_pred_multi = np.argmax(mc_classifier.predict(x_test), axis=1)
 
     cm_multi = sk_confusion_matrix(y_test, y_pred_multi)
     print(cm_multi)
+    accuracy_multi = accuracy(y_test, y_pred_multi)
+    print(f"Multiclass Classification Accuracy (MNIST) - Epochs: {training_epochs}: {accuracy_multi:.4f}")
     
     fig, ax = plt.subplots(1, 1, figsize=(9, 3.6))
 
