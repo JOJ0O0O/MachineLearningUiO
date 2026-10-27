@@ -35,6 +35,9 @@ def softmax_vec(z):
 def mse(predict, target):
     return jnp.mean((predict - target) ** 2)
 
+def cross_entropy(predict, target):
+    return jnp.sum(-target * jnp.log(predict))
+
 def mse_der(predict, target):
     return 2 * (predict - target) / predict.size
 
@@ -42,4 +45,5 @@ dict_act_der = {ReLU : ReLU_der,
                 sigmoid: sigmoid_der,
                 softmax: None}
 
-dict_cost_der = {mse : mse_der}
+dict_cost_der = {mse : mse_der,
+                 cross_entropy : None}
