@@ -22,6 +22,7 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         self.activation_ders = [acf.dict_act_der[activation_fun] for activation_fun in activation_funcs]
         self.cost_fun = cost_fun
         self.cost_der = acf.dict_cost_der[cost_fun]
+        self.weight_ini = [acf.dict_act_weights[key] for key in activation_funcs]
         self.seed = seed 
         self.optimizer = optimizer          #This will be an optimizer object, which is created from a different file
         self.layer_output_sizes = layer_output_sizes
@@ -178,7 +179,11 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         current_shapes = [(W.shape, b.shape) for W, b in getattr(self, "layers", [])]
         if reset or current_shapes != expected_shapes:
             rng = np.random.default_rng(self.seed)
-            self.layers = [(rng.standard_normal((n_in, n_out)) / np.sqrt(n_in), np.zeros(n_out))
-                           for n_in, n_out in zip(sizes[:-1], sizes[1:])]
+            self.layers = []
+
+            for fan_in, fan_out, initializer in zip(sizes[:-1], sizes[1:], self.weight_ini):
+                weights = initializer(rng, fan_in, fan_out)
+                biases = np.zeros(fan_out)
+                self.layers.append((weights, biases))
             if hasattr(self, "optimizer_"):
                 del self.optimizer_
