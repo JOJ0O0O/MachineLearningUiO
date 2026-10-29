@@ -58,6 +58,7 @@ n = 100
 sigma = 0.1                                  # noise level: explore it!
 x = np.sort(rng.uniform(-1, 1, n))
 y = runge(x) + rng.normal(0, sigma, n)
+ymean= y.mean()
 
 xtrain, xTest, ytrain, ytest = sklearn.model_selection.train_test_split(x, y, test_size=0.2, random_state=2026)
 
@@ -79,16 +80,44 @@ xx = xx.reshape(-1,1)
 
 """ Set up done """
 
-TestAdam = opt.AdamOptimizer(gamma=0.01)
-TestNet = NN.NeuralNetwork(xtrain.shape[1], [30,30,1], [act.ReLU, act.sigmoid, act.sigmoid], act.mse, optimizer=TestAdam)
+def BuildTestNets():
+    """
+    Test function to see if Neural Network implementation works
+    Calls both Jax and non-Jax implementation of backpropagation
+    """
+    TestOpti = opt.AdamOptimizer(gamma=0.01)
+    TestNet = NN.NeuralNetwork(xtrain.shape[1],
+                            [30,30,1], 
+                            [act.ReLU, act.sigmoid, act.sigmoid], 
+                            act.mse, 
+                            optimizer = TestOpti,
+                            regularization=None,
+                            lam=0.001)
 
-TestNet.train(xtrain, ytrain, 1000)
+    TestOptiJax = opt.AdamOptimizer(gamma=0.01)
+    TestNetJax = NN.NeuralNetwork(xtrain.shape[1],
+                            [30,30,1], 
+                            [act.ReLU, act.sigmoid, act.sigmoid], 
+                            act.mse, 
+                            optimizer = TestOptiJax,
+                            regularization = None,
+                            lam=0.001)
 
-ypred = TestNet.predict(xTest)
-yxx = TestNet.predict(xx)
-print(ypred)
-fig = plt.plot(xx,yxx)
-plt.show()
+    TestNet.train(xtrain, ytrain, 1000)
+    TestNetJax.train_jax(xtrain, ytrain, 1000, sgd=False)
 
-# execute exercise e (multiclass classifier on mnist.npz dataset)
-exercise_e()
+    """Build simple model to predict a range of x values to see if jax and own gradient produces the same"""
+    ypred = TestNet.predict(xTest)
+    yxx = TestNet.predict(xx)
+    yxxjax = TestNetJax.predict(xx)
+
+    plt.plot(xx,yxx, label="Handwritten")
+    plt.plot(xx,yxxjax, label="Jax")
+    plt.legend()
+    plt.show()
+
+
+if __name__ == "__main__":
+    BuildTestNets()a
+
+    exercise_e()
