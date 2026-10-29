@@ -4,6 +4,7 @@ import sklearn
 import Activation_Cost_funcs as act
 import Optimizers as opt
 import matplotlib.pyplot as plt
+from pathlib import Path
 from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin, clone
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.pipeline import Pipeline, make_pipeline
@@ -121,7 +122,8 @@ def task_b():
     cv = KFold(n_splits=5, shuffle=True, random_state=2026)
     Optimizers = [opt.PlainGDOptimizer, opt.AdamOptimizer, opt.RMSPropOptimizer]
     gammas = [0.001, 0.003, 0.01, 0.03, 0.07, 0.1, 0.15, 0.2,0.25,0.3]
-    layers = [(50,1),(50,50,1),(100,1),(100,100,1)]
+    layers = [(50,1),(50,50,1),(50,50,50,1),(100,1),(100,100,1),(100,100,100,1)]
+
     param_grid = {"neuralnetwork__gamma": gammas,
                     "neuralnetwork__optimizer": Optimizers,
                     "neuralnetwork__layer_output_sizes": layers}
@@ -130,12 +132,52 @@ def task_b():
                         regularization=None,
                         cost_fun=act.mse,
                         layer_output_sizes=(50,1),
-                        activation_funcs=[act.sigmoid,act.sigmoid,act.sigmoid],
+                        activation_funcs=[act.sigmoid,act.sigmoid,act.sigmoid,act.identity],
                         optimizer=opt.AdamOptimizer))
     grid = GridSearchCV(net, param_grid, cv=cv, scoring="neg_mean_squared_error", return_train_score=True, n_jobs=-1)
     grid.fit(x,y)
+    results = grid.cv_results_
+    mse = np.empty((len(Optimizers), len(layers), len(gammas)))
+    for params, score in zip(results["params"], results["mean_test_score"]):
+        optimizer_index = Optimizers.index(params["neuralnetwork__optimizer"])
+        layer_index = layers.index(params["neuralnetwork__layer_output_sizes"])
+        gamma_index = gammas.index(params["neuralnetwork__gamma"])
+        mse[optimizer_index, layer_index, gamma_index] = -score
+
+    best_model = grid.best_estimator_
+    best_params = grid.best_params_
+    print(best_params, best_model)
+    fig, axes = plt.subplots(1, len(Optimizers), figsize=(25, 7),
+                             constrained_layout=True)
+    """
+    AI Declaration:
+    I have used AI to fix the below code, as my first written code had a bug inside of it
+    Tool: GPT6-Luna in VSCode
+    This corresponds to usage Level 1 as I have written, tested and verified the code myself and had only used AI as a small help
+    """
+    mse_min, mse_max = np.min(mse), np.max(mse)
+    for i, (optimizer, axis) in enumerate(zip(Optimizers, axes)):
+        im = axis.imshow(mse[i], cmap="viridis_r", origin="lower", aspect="equal",
+                         vmin=mse_min, vmax=mse_max)
+        for layer_index in range(len(layers)):
+            for gamma_index in range(len(gammas)):
+                value = mse[i, layer_index, gamma_index]
+                text_color = "white" if im.norm(value) >= 0.5 else "black"
+                axis.text(gamma_index, layer_index, f"{value:.3g}",
+                          ha="center", va="center", fontsize=7, color=text_color)
+        axis.set_xticks(range(len(gammas)))
+        axis.set_xticklabels([f"{gamma:g}" for gamma in gammas], fontsize=7)
+        axis.set_yticks(range(len(layers)))
+        axis.set_yticklabels([str(layer) for layer in layers], fontsize=7)
+        axis.set_xlabel("$\\gamma$")
+        axis.set_ylabel("Network architecture")
+        axis.set_title(f"{optimizer.__name__}: CV MSE", fontsize=9)
+    fig.colorbar(im, ax=axes, label="MSE")
+    output_path = Path(__file__).resolve().parent / "Task_b Layers vs Gammas.pdf"
+    fig.savefig(output_path)
+    print(f"Saved figure to {output_path}")
 
 
 if __name__ == "__main__":
-    BuildTestNets()
+    #BuildTestNets()
     task_b()

@@ -19,10 +19,20 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         lam = 0.0
     ):
         self.activation_funcs = activation_funcs
-        self.activation_ders = [acf.dict_act_der[activation_fun] for activation_fun in activation_funcs]
+        n_layers = len(layer_output_sizes)
+        if n_layers == 0:
+            raise ValueError("layer_output_sizes must contain at least one layer")
+        if len(activation_funcs) < n_layers:
+            raise ValueError("activation_funcs must provide an activation for every layer")
+        self.activation_ders = [
+            acf.dict_act_der[activation_fun]
+            for activation_fun in self.activation_funcs
+        ]
         self.cost_fun = cost_fun
         self.cost_der = acf.dict_cost_der[cost_fun]
-        self.weight_ini = [acf.dict_act_weights[key] for key in activation_funcs]
+        self.weight_ini = [
+            acf.dict_act_weights[key] for key in self.activation_funcs
+        ]
         self.seed = seed 
         self.optimizer = optimizer          #This will be an optimizer object, which is created from a different file
         self.layer_output_sizes = layer_output_sizes
@@ -43,7 +53,8 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
     def _feed_forward_saver(self, inputs):
         layer_inputs, zs = [], []
         a = inputs
-        for (W, b), f in zip(self.layers, self.activation_funcs):
+        for i, (W, b) in enumerate(self.layers):
+            f = self.activation_funcs[self._activation_index(i, len(self.layers))]
             layer_inputs.append(a)
             z = a @ W + b
             a = f(z)
@@ -61,7 +72,8 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
             else:
                 W_next, _ = self.layers[i + 1]
                 dC_da = dC_dz @ W_next.T
-            dC_dz = dC_da * self.activation_ders[i](z)
+            derivative_index = self._activation_index(i, L)
+            dC_dz = dC_da * self.activation_ders[derivative_index](z)
             layer_grads[i] = (layer_input.T @ dC_dz, np.sum(dC_dz, axis=0))
         if self.regularization == "L1":
             layer_grads = [(dW + self.lam * np.sign(W), db +  self.lam * np.sign(b)) for (dW, db),(W,b) in zip(layer_grads, self.layers)]
@@ -103,7 +115,7 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         if(sgd):
             rng = np.random.default_rng(2026)
             for _ in range(epochs):
-                for batch in self.shuffeled_batches(len(inputs), 128, rng):
+                for batch in self.shuffeled_batches(len(inputs), 16, rng):
                     grad = self.compute_gradient(inputs[batch], targets[batch])
                     step =  self._get_optimizer().step(grad)
                     self.update_weights(step)
@@ -124,9 +136,25 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
     # The first one has a layers parameter so that you can use jax.grad on it.
     def jax_compliant_predict(self, layers, inputs):
         a = inputs
-        for (W, b), f in zip(layers, self.activation_funcs):
+        for i, (W, b) in enumerate(layers):
+            f = self.activation_funcs[self._activation_index(i, len(layers))]
             a = f(a @ W + b)
         return a
+
+    def _activation_index(self, layer_index, n_layers):
+        """
+            This helper function is AI generated, to merge what scikit learns CV functionalities need with the previous architecture of my neural network.
+            This sone is specifically used so we can use a CV over the number of layers, while giving the network only one set of activation functions, with the last / output activation being the last one in the list.
+            For this I have used gpt-6 luna.
+            I have implemented, tested and modified this function myself.
+            This therefore corresponds to usage level 2.
+        """
+        if len(self.activation_funcs) < n_layers:
+            raise ValueError(
+                "activation_funcs must provide an activation for every layer "
+                f"({n_layers} required, {len(self.activation_funcs)} provided)"
+            )
+        return layer_index if layer_index < n_layers - 1 else len(self.activation_funcs) - 1
 
     def jax_gradient(self, inputs, targets):
         if self.regularization == "L1":
@@ -174,6 +202,12 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         Needed if the Network is used inside a Crossvalidation from scikit-learn
         """
         sizes = [self.network_input_size] + list(self.layer_output_sizes)
+        n_layers = len(sizes) - 1
+        if len(self.activation_funcs) < n_layers:
+            raise ValueError(
+                "activation_funcs must provide an activation for every layer "
+                f"({n_layers} required, {len(self.activation_funcs)} provided)"
+            )
         expected_shapes = [((n_in, n_out), (n_out,))
                            for n_in, n_out in zip(sizes[:-1], sizes[1:])]
         current_shapes = [(W.shape, b.shape) for W, b in getattr(self, "layers", [])]
@@ -181,7 +215,9 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
             rng = np.random.default_rng(self.seed)
             self.layers = []
 
-            for fan_in, fan_out, initializer in zip(sizes[:-1], sizes[1:], self.weight_ini):
+            for i, (fan_in, fan_out) in enumerate(zip(sizes[:-1], sizes[1:])):
+                initializer_index = self._activation_index(i, n_layers)
+                initializer = self.weight_ini[initializer_index]
                 weights = initializer(rng, fan_in, fan_out)
                 biases = np.zeros(fan_out)
                 self.layers.append((weights, biases))
