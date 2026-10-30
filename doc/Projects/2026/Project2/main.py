@@ -199,9 +199,5 @@ def Polyfit():
 
 if __name__ == "__main__":
     #BuildTestNets()
-<<<<<<< HEAD
-    task_b()
-=======
     #task_b()
     Polyfit()
->>>>>>> origin/main
