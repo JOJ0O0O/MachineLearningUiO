@@ -13,6 +13,8 @@ from sklearn.model_selection import (KFold, StratifiedKFold, cross_val_score, cr
                                      cross_val_predict, GridSearchCV, validation_curve, learning_curve)
 
 
+from exercise_e import exercise_e
+
 """Set up data from Project 1"""
 
 def runge(x):
@@ -197,5 +199,9 @@ def Polyfit():
 
 if __name__ == "__main__":
     #BuildTestNets()
+<<<<<<< HEAD
+    task_b()
+=======
     #task_b()
     Polyfit()
+>>>>>>> origin/main
