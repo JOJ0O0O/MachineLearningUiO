@@ -66,21 +66,47 @@ def load_weights(filename):
         n_layers = len(data.files) // 2
         return [(data[f"W{i}"], data[f"b{i}"]) for i in range(n_layers)], data["epochs"]
 
+
+def yes_no(question):
+    while True:
+        answer = input(question + " (y/n): ").strip().lower()
+        if answer in ['y', 'n']:
+            return answer == 'y'
+        print("Invalid input. Please enter 'y' or 'n'.")
     
 def choose_load_weights_from_file(epochs, filename):
-    choice = input(f"Do you want to load weights and biases from {os.path.basename(filename)}? (y/n)",).strip().lower()
-    match choice:
-        case 'y':
-            print(f"\rLoading weights and biases from {os.path.basename(filename)}...", end="")
-            weights, epochs = load_weights(filename)
-            print(f"\rWeights and biases loaded from {os.path.basename(filename)}.")
-            return weights, epochs
-        case 'n':
-            return None, epochs
-        case _:
-            print("Invalid choice. Please enter 'y' or 'n'.")
-            choose_load_weights_from_file(filename)  # Recursive call until valid input is received
-    return
+    """
+    Asks whether to load saved weights. Returns (weights, epochs stored in the file) on 'y'
+    and (None, epochs) on 'n'.
+
+    LLM-assisted
+    ------------
+    Tool: Claude (Claude Opus 5.5, claude.ai, Oct 2026)
+    Role: Identified that the retry after invalid input called this function with the wrong
+    arguments and discarded its result; replaced the recursion by the author's yes_no loop.
+    Modifications: Integrated and tested by the author.
+    """
+    if not yes_no(f"Do you want to load weights and biases from {os.path.basename(filename)}?"):
+        return None, epochs
+    print(f"\rLoading weights and biases from {os.path.basename(filename)}...", end="")
+    weights, epochs = load_weights(filename)
+    print(f"\rWeights and biases loaded from {os.path.basename(filename)}.")
+    return weights, int(epochs)
+
+
+def softmax_cross_entropy_error(predict, target):
+    """
+    Computes the error for the output layer when using softmax activation and cross-entropy loss.
+    This is the special case where the derivative of the output layer simplifies to (a - y).
+
+    LLM-assisted
+    ------------
+    Tool: Claude (Claude Opus 5.5, claude.ai, Oct 2026)
+    Role: Moved the author's nested output_error function to module level, so that the grid
+    search can pass it to the network as well (and it can be sent to the parallel workers).
+    Modifications: Integrated and tested by the author.
+    """
+    return predict - target
 
 def choose_save_weights_to_file(weights, epochs, filename):
     choice = input(f"Do you want to save the trained weights and biases to {os.path.basename(filename)}? (y/n)").strip().lower()

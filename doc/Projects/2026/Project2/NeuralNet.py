@@ -16,6 +16,8 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         optimizer,
         gamma=0.1,
         seed=2026,
+        epochs=1000,
+        output_error = None,
         regularization = None,
         lam = 0.0
     ):
@@ -39,6 +41,8 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         self.layer_output_sizes = layer_output_sizes
         self.network_input_size = network_input_size
         self.gamma = gamma
+        self.epochs = epochs
+        self.output_error = output_error
         if regularization in ["L1", "L2", None]:
             self.regularization = regularization
             self.lam = lam
@@ -72,16 +76,24 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         layer_inputs, zs, predict = self._feed_forward_saver(inputs)
         layer_grads = [() for _ in self.layers]
         L = len(self.layers)
+
         for i in reversed(range(L)):
+
             layer_input, z = layer_inputs[i], zs[i]
-            if i == L - 1:
-                dC_da = self.cost_der(predict, targets)
+            if i == L - 1 and self.output_error is not None:   # useful for multiclass classification with softmax output and cross-entropy loss, where the derivative is simplified to predict - targets
+                dC_dz = self.output_error(predict, targets)
             else:
-                W_next, _ = self.layers[i + 1]
-                dC_da = dC_dz @ W_next.T
-            derivative_index = self._activation_index(i, L)
-            dC_dz = dC_da * self.activation_ders[derivative_index](z)
+                if i == L - 1:
+                    dC_da = self.cost_der(predict, targets)
+                else:
+                    W_next, _ = self.layers[i + 1]
+                    dC_da = dC_dz @ W_next.T
+
+                derivative_index = self._activation_index(i, L)
+                dC_dz = dC_da * self.activation_ders[derivative_index](z)
+
             layer_grads[i] = (layer_input.T @ dC_dz, np.sum(dC_dz, axis=0))
+
         if self.regularization == "L1":
             layer_grads = [(dW + self.lam * np.sign(W), db +  self.lam * np.sign(b)) for (dW, db),(W,b) in zip(layer_grads, self.layers)]
         elif self.regularization == "L2":
@@ -95,14 +107,14 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         self.init_layers()
         if(sgd):
             rng = np.random.default_rng(2026)
-            for _ in range(epochs):
+            for _ in tqdm(range(epochs)):
                 for batch in self.shuffeled_batches(len(inputs), 128, rng):
                     grad = self.jax_gradient(inputs[batch], targets[batch])
                     step =  self._get_optimizer().step(grad)
                     self.update_weights(step)
 
         else:
-            for _ in range(epochs):
+            for _ in tqdm(range(epochs)):
                 grad = self.jax_gradient(inputs, targets)
                 step =  self._get_optimizer().step(grad)
                 self.update_weights(step)
