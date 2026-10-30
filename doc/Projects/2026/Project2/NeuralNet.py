@@ -54,12 +54,35 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
     def set_weights(self, new_weights):
         self.layers = new_weights
 
-    def predict(self, inputs):
-        # Simple feed forward pass
-        return np.asarray(self.jax_compliant_predict(self.layers, X)).reshape(-1)
+    def predict(self, X):
+        """
+        Simple feed forward pass.
+        Returns shape (N,) for a single output neuron (what scikit-learn expects for regression)
+        and (N, n_outputs) otherwise, e.g. the class probabilities of a softmax output layer.
 
+        LLM-assisted
+        ------------
+        Tool: Claude (Claude Opus 5.5, claude.ai, Oct 2026)
+        Role: Identified that reshape(-1) flattened the (N, 10) softmax output to (10N,);
+        provided the version that only flattens single-output networks.
+        Modifications: Integrated and tested by the author.
+        """
+        output = np.asarray(self.jax_compliant_predict(self.layers, X))
+        return output.ravel() if output.shape[1] == 1 else output
+    
     def cost(self, inputs, targets):
-        return self.cost_fun(self.predict(inputs), targets)
+        """
+        Cost of the current network, evaluated on the raw (N, n_outputs) network output.
+
+        LLM-assisted
+        ------------
+        Tool: Claude (Claude Opus 5.5, claude.ai, Oct 2026)
+        Role: Suggested evaluating the cost on the unflattened output and turning 1-D targets
+        into a column, so that (N,) targets are not broadcast against (N, 1) outputs.
+        Modifications: Integrated and tested by the author.
+        """
+        output = self.jax_compliant_predict(self.layers, inputs)
+        return self.cost_fun(output, self._as_column(targets))
 
     def _feed_forward_saver(self, inputs):
         layer_inputs, zs = [], []
@@ -123,16 +146,13 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
 
     def fit(self, X, y):
         #Wrapper for scikit learn
-        if len(self.activation_funcs) != len(self.layer_output_sizes):
-            raise ValueError("Jede Schicht benötigt genau eine Aktivierungsfunktion.")
-
         # Aus den aktuell von GridSearchCV gesetzten Parametern berechnen
         self.activation_ders = [acf.dict_act_der[f] for f in self.activation_funcs]
         self.weight_ini = [acf.dict_act_weights[f] for f in self.activation_funcs]
         self.cost_der = acf.dict_cost_der[self.cost_fun]
         self.init_layers(reset=True)
         self.optimizer_ = self.optimizer(self.gamma)
-        self.train(X, np.asarray(y).reshape(-1, 1), epochs=1000)
+        self.train(X, self._as_column(y), epochs=self.epochs)
         return self
 
     def train(self, inputs, targets, epochs, sgd = True):
@@ -140,14 +160,14 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         self.init_layers()
         if(sgd):
             rng = np.random.default_rng(2026)
-            for _ in range(epochs):
+            for _ in tqdm(range(epochs)):
                 for batch in self.shuffeled_batches(len(inputs), 16, rng):
                     grad = self.compute_gradient(inputs[batch], targets[batch])
                     step =  self._get_optimizer().step(grad)
                     self.update_weights(step)
 
         else:
-            for _ in range(epochs):
+            for _ in tqdm(range(epochs)):
                 grad = self.compute_gradient(inputs, targets)
                 step =  self._get_optimizer().step(grad)
                 self.update_weights(step)
@@ -197,6 +217,21 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
             def cost_of_layers(layers):
                         return self.cost_fun(self.jax_compliant_predict(layers, inputs), targets)
             return jax.grad(cost_of_layers)(self.layers)
+
+    @staticmethod
+    def _as_column(targets):
+        """
+        Returns the targets as a 2-D array: (N,) -> (N, 1); (N, k), e.g. one-hot labels, unchanged.
+
+        LLM-assisted
+        ------------
+        Tool: Claude (Claude Opus 5.5, claude.ai, Oct 2026)
+        Role: Provided the function; replaces reshape(-1, 1), which turned one-hot targets of
+        shape (N, 10) into (10N, 1) and thereby scrambled the labels.
+        Modifications: Integrated and tested by the author.
+        """
+        targets = np.asarray(targets)
+        return targets.reshape(-1, 1) if targets.ndim == 1 else targets
 
     @staticmethod
     def shuffeled_batches(n, M, rng):
@@ -249,3 +284,4 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
                 self.layers.append((weights, biases))
             if hasattr(self, "optimizer_"):
                 del self.optimizer_
+

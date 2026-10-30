@@ -9,6 +9,14 @@ import numpy as np
 import sklearn
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import accuracy_score, ConfusionMatrixDisplay, confusion_matrix as sk_confusion_matrix
+from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin, clone
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.model_selection import (KFold, StratifiedKFold, cross_val_score, cross_validate,
+                                     cross_val_predict, GridSearchCV, validation_curve, learning_curve)
+
+
 
 import Activation_Cost_funcs as act
 import Optimizers as opt
@@ -122,6 +130,163 @@ def choose_save_weights_to_file(weights, epochs, filename):
             choose_save_weights_to_file(weights, epochs, filename)  # Recursive call until valid input is received
     return
 
+
+def grid_search_hyperparameters(
+        NN,
+        x,
+        y,
+        kfolds=5,
+        gammas=[0.001, 0.01, 0.03, 0.1, 0.3],
+        optimizers=[opt.MomentumOptimizer, opt.AdamOptimizer],
+        layers=[(50,10),(50,50,10),(50,50,50,10),(100,10),(100,100,10),(100,100,100,10)],
+        epochs=[10, 20, 50],
+        activation_funcs=[act.ReLU, act.ReLU, act.softmax],
+        cost_fun=act.cross_entropy,
+        output_error=softmax_cross_entropy_error,
+        scoring="neg_mean_squared_error",
+        n_jobs=-1,
+        seed=2026,
+        save_results_to_file=True,
+        results_filename="results/exercise_e/grid_search_results.npz"
+):
+    """
+    Perform a grid search over the specified hyperparameters for the neural network.
+
+    Parameters
+    ----------
+    NN : module containing the NeuralNetwork class
+        The neural network module to be used for training.
+    x : array-like, shape (n_samples, n_features)
+        The input data for training.
+    y : array-like, shape (n_samples, n_classes)
+        One-hot encoded target values for training.
+    kfolds : int, optional
+        The number of folds for cross-validation. Default is 5.
+    gammas : list of float, optional
+        List of learning rates to be tested. Default is [0.001, 0.01, 0.03, 0.1, 0.3].
+    optimizers : list of Optimizer classes, optional
+        List of optimizer classes to be tested. Default is [MomentumOptimizer, AdamOptimizer].
+    layers : list of tuples, optional
+        List of layer configurations to be tested, be careful, the output layer size must match the number of classes in the target variable. Default is [(50,10),(50,50,10),(50,50,50,10),(100,10),(100,100,10),(100,100,100,10)].
+    activation_funcs : list of callable activation functions, optional
+        The first entry is used for all hidden layers, the last one for the output layer. Default is [ReLU, ReLU, softmax].
+    cost_fun : callable, optional
+        Cost function of the network. Default is cross_entropy.
+    output_error : callable or None, optional
+        Output-layer error passed to the network. Default is softmax_cross_entropy_error (a - y).
+    scoring : str, optional
+        The scoring metric to be used for evaluation. Default is "neg_mean_squared_error".
+    n_jobs : int, optional
+        The number of parallel jobs to be used for the grid search. Default is -1 (all available cores).
+    seed : int, optional
+        The random seed for reproducibility. Default is 2026.
+    epochs : int, optional
+        The number of epochs to train the network for. Default is 20.
+    save_results_to_file : bool, optional
+        Whether to save the grid search results to a file. Default is True.
+    results_filename : str, optional
+        The filename for saving the grid search results. Default is "results/exercise_e/grid_search_results.npz".
+    Returns
+    -------
+    best_params : dict, best parameter combination (keys as in GridSearchCV.best_params_)
+
+    LLM-assisted
+    ------------
+    Tool: Claude (Claude Opus 5.5, claude.ai, Oct 2026)
+    Role: Fixed the author's version: parameter names without the "neuralnetwork__" prefix
+    (no pipeline any more), cross-entropy cost and output error passed to the network,
+    activation list built for the deepest architecture, NaN-initialised result array,
+    refit=False, results stored without pickled objects, figure saved next to the results
+    file, best parameters returned.
+    Modifications: Integrated and tested by the author.
+    """
+
+    # one activation per layer of the deepest network: hidden activation repeated, output activation last
+    max_layers = max(len(layer) for layer in layers)
+    activation_funcs = [activation_funcs[0]] * (max_layers - 1) + [activation_funcs[-1]]
+
+    cv = KFold(n_splits=kfolds, shuffle=True, random_state=seed)
+    param_grid = {
+        "gamma": gammas,
+        "optimizer": optimizers,
+        "layer_output_sizes": layers,
+        "epochs": epochs
+        }
+
+    net = NN.NeuralNetwork(network_input_size=x.shape[1],
+                        regularization=None,
+                        cost_fun=cost_fun,
+                        output_error=output_error,
+                        layer_output_sizes=layers[0],
+                        activation_funcs=activation_funcs,
+                        optimizer=optimizers[0],
+                        epochs=epochs[0],
+                        seed=seed)
+
+    grid = GridSearchCV(net, param_grid, cv=cv, scoring=scoring, return_train_score=True, n_jobs=n_jobs, refit=False)
+    grid.fit(x, y)
+    results = grid.cv_results_
+
+    mse = np.full((len(optimizers), len(layers), len(gammas), len(epochs)), np.nan)
+    for params, score in zip(results["params"], results["mean_test_score"]):
+        optimizer_index = optimizers.index(params["optimizer"])
+        layer_index = layers.index(params["layer_output_sizes"])
+        gamma_index = gammas.index(params["gamma"])
+        epoch_index = epochs.index(params["epochs"])
+        mse[optimizer_index, layer_index, gamma_index, epoch_index] = -score
+
+    best_params = grid.best_params_
+    best_score = grid.best_score_
+
+    if save_results_to_file:
+        os.makedirs(os.path.dirname(results_filename), exist_ok=True)
+        np.savez(results_filename,
+                 mse=mse,
+                 gammas=np.array(gammas),
+                 optimizers=np.array([optimizer.__name__ for optimizer in optimizers]),
+                 layers=np.array([str(layer) for layer in layers]),
+                 epochs=np.array(epochs),
+                 best_optimizer=best_params["optimizer"].__name__,
+                 best_gamma=best_params["gamma"],
+                 best_layers=np.array(best_params["layer_output_sizes"]),
+                 best_epochs=best_params["epochs"],
+                 best_score=best_score)
+
+    print(f"Best Parameters: {best_params}")
+    print(f"Best Score: {best_score}")
+
+    mse_min, mse_max = np.nanmin(mse), np.nanmax(mse)
+    for epoch_index, n_epochs in enumerate(epochs):
+        fig, axes = plt.subplots(1, len(optimizers), figsize=(25, 7),
+                                 constrained_layout=True, squeeze=False)
+        axes = axes[0]
+        for i, (optimizer, axis) in enumerate(zip(optimizers, axes)):
+            im = axis.imshow(mse[i, :, :, epoch_index], cmap="viridis_r", origin="lower", aspect="equal",
+                             vmin=mse_min, vmax=mse_max)
+            for layer_index in range(len(layers)):
+                for gamma_index in range(len(gammas)):
+                    value = mse[i, layer_index, gamma_index, epoch_index]
+                    text_color = "white" if im.norm(value) >= 0.5 else "black"
+                    axis.text(gamma_index, layer_index, f"{value:.3g}",
+                              ha="center", va="center", fontsize=7, color=text_color)
+            axis.set_xticks(range(len(gammas)))
+            axis.set_xticklabels([f"{gamma:g}" for gamma in gammas], fontsize=7)
+            axis.set_yticks(range(len(layers)))
+            axis.set_yticklabels([str(layer) for layer in layers], fontsize=7)
+            axis.set_xlabel("$\\gamma$")
+            axis.set_ylabel("Network architecture")
+            axis.set_title(f"{optimizer.__name__}: CV MSE, {n_epochs} epochs", fontsize=9)
+        fig.colorbar(im, ax=axes, label="MSE")
+
+        if save_results_to_file:
+            output_path = results_filename.replace(".npz", f"_{n_epochs}_epochs.pdf")
+            fig.savefig(output_path)
+            print(f"Saved figure to {output_path}")
+        plt.close(fig)
+
+    return best_params
+
+
 def multiclassifier(
         url = "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz",
         architecture : dict[str, list[int] | list[callable]] = {
@@ -148,9 +313,23 @@ def multiclassifier(
     confusion_matrix_filename : String, name of the file to save the confusion matrix plot; default: "confusion_matrix_exercise_e_1000_epochs_2_hidden_layer_64x64.pdf"
 
     Returns
-    ------- 
+    -------
     None
+
+    LLM-assisted
+    ------------
+    Tool: Claude (Claude Opus 5.5, claude.ai, Oct 2026)
+    Role: Fixed the model set-up: the classifier was undefined after the grid search; it is now
+    built after the optional grid search from its best parameters, the output error uses the
+    module-level softmax_cross_entropy_error, and loaded weights are checked against the
+    classifier's own layer sizes.
+    Modifications: Integrated and tested by the author.
     """
+
+    # LLM (Claude Opus 5.5, Oct 2026): suggested resolving the path relative to the script's
+    # own folder so that it does not depend on the working directory; verified by the author.
+    base = os.path.dirname(os.path.abspath(__file__))
+    weight_file_path = os.path.join(base, weight_file)
 
     # verify that the mnist dataset exist and download otherwise
     if not os.path.exists("mnist.npz"):
@@ -163,7 +342,7 @@ def multiclassifier(
         x_test = data["x_test"].reshape(len(data["x_test"]), -1) / 255.0
         y_test = data["y_test"]
 
-     # LLM (Claude Opus 5.5, Oct 2026): identified a shape mismatch between the softmax output (N, 10)
+    # LLM (Claude Opus 5.5, Oct 2026): identified a shape mismatch between the softmax output (N, 10)
     # and the integer labels (N,) in output_error. One-hot encoding implemented by the author;
     # shapes verified via print statements before training.
     n_classes = architecture["layer_output_sizes"][-1]
@@ -175,36 +354,54 @@ def multiclassifier(
     print("x_test shape:", x_test.shape)
     print("y_test_onehot shape:", y_test_onehot.shape)"""
 
-    if architecture["activations"][-1] == act.softmax:
-        def output_error(predict, target):
-            """
-            Computes the error for the output layer when using softmax activation and cross-entropy loss.
-            This is the special case where the derivative of the output layer simplifies to (a - y).
-            """
-            return predict - target
-    else:
-        output_error = None
+    output_error = softmax_cross_entropy_error if architecture["activations"][-1] == act.softmax else None
+
+    # default hyperparameters; replaced by the grid-search optimum if a grid search is run
+    layer_output_sizes = list(architecture["layer_output_sizes"])
+    activation_funcs = architecture["activations"]
+    optimizer_class, gamma = opt.AdamOptimizer, 0.001
+
+    if yes_no(f"Do you intend to grid search over hyperparameters for the architecture {architecture}? (Warning: This may take a long time)"):
+        best_params = grid_search_hyperparameters(
+            NN=NN,
+            x=x_train,
+            y=y_train_onehot,
+            kfolds=5,
+            gammas=[0.001, 0.01, 0.03, 0.1, 0.3],
+            optimizers=[opt.MomentumOptimizer, opt.AdamOptimizer],
+            layers=[(50,10),(50,50,10),(50,50,50,10),(100,10),(100,100,10),(100,100,100,10)],
+            epochs=[10, 20, 50, 100],
+            activation_funcs=activation_funcs,
+            output_error=output_error,
+            scoring="neg_mean_squared_error",
+            n_jobs=-1,
+            seed=seed,
+            save_results_to_file=True,
+            results_filename=os.path.join(base, "results", "exercise_e", "grid_search_results.npz")
+        )
+        optimizer_class = best_params["optimizer"]
+        gamma = best_params["gamma"]
+        layer_output_sizes = list(best_params["layer_output_sizes"])
+        activation_funcs = [activation_funcs[0]] * (len(layer_output_sizes) - 1) + [activation_funcs[-1]]
 
     mc_classifier = NN.NeuralNetwork(
         network_input_size=x_train.shape[1],
-        layer_output_sizes=architecture["layer_output_sizes"],
-        activation_funcs=architecture["activations"],
-        cost_fun=act.cross_entropy if architecture["activations"][-1] == act.softmax else act.mse,
-        optimizer=opt.AdamOptimizer(gamma=0.001),
+        layer_output_sizes=layer_output_sizes,
+        activation_funcs=activation_funcs,
+        cost_fun=act.cross_entropy if activation_funcs[-1] == act.softmax else act.mse,
+        optimizer=optimizer_class,
+        gamma=gamma,
         output_error=output_error,
+        regularization=None,
+        lam=0.0,
         seed=seed
     )
-
-    # LLM (Claude Opus 5.5, Oct 2026): suggested resolving the path relative to the script's
-    # own folder so that it does not depend on the working directory; verified by the author.
-    base = os.path.dirname(os.path.abspath(__file__))
-    weight_file_path = os.path.join(base, weight_file)
 
     if os.path.exists(weight_file_path):
         weights, training_epochs = choose_load_weights_from_file(training_epochs, weight_file_path)
 
         if weights is not None:
-            if architecture["layer_output_sizes"] != [w.shape[1] for w, _ in weights]:
+            if layer_output_sizes != [w.shape[1] for w, _ in weights]:
                 raise Exception("The loaded weights do not match the specified architecture. Please check the architecture or choose not to load weights.")
                 
             mc_classifier.set_weights(weights)
@@ -243,7 +440,9 @@ def multiclassifier(
 
 
 def exercise_e():
-    multiclassifier(
+    multiclassifier(weight_file = "weights_exercise_e_grid_search.npz",)
+
+    """multiclassifier(
         architecture = {
             "layer_output_sizes": [32, 32, 10],  # 2 hidden layers with 32 neurons each, and an output layer with 10 neurons (for 10 classes of digits)
             "activations": [act.ReLU, act.ReLU, act.softmax],   # activation functions for each layer (ReLU for hidden layers, softmax for output layer)
@@ -253,8 +452,6 @@ def exercise_e():
         training_epochs = 2000,
         confusion_matrix_filename = "confusion_matrix_exercise_e_2000_epochs_2_hidden_layer_32x32.pdf"
     )
-
-    multiclassifier()
 
     multiclassifier(
         architecture = {
@@ -276,7 +473,7 @@ def exercise_e():
         weight_file = "weights_exercise_e_linear_regression.npz",
         training_epochs = 1000,
         confusion_matrix_filename = "confusion_matrix_exercise_e_linear_regression.pdf"
-    )
+    )"""
 
     return
 
