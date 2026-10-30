@@ -4,6 +4,7 @@ import Activation_Cost_funcs as acf
 import jax.numpy as jnp
 from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin, clone
 
+from tqdm import tqdm
 
 class NeuralNetwork(BaseEstimator, RegressorMixin):
     def __init__(
