@@ -177,7 +177,25 @@ def task_b():
     fig.savefig(output_path)
     print(f"Saved figure to {output_path}")
 
+def Polyfit():
+    cv = KFold(n_splits=5, shuffle=True, random_state=2026)
+    poly = make_pipeline(StandardScaler(), PolynomialFeatures(), LinearRegression())
+    search_poly = GridSearchCV(poly, {"polynomialfeatures__degree": range(1, 16)}, cv=cv, scoring="neg_mean_squared_error", return_train_score=True)
+    search_poly.fit(x, y)
+    results = search_poly.cv_results_          # a dict of arrays, one entry per grid point
+    mse = -results["mean_test_score"]
+    se = results["std_test_score"] / np.sqrt(cv.get_n_splits() - 1)
+    print(mse, " +/- ", se)
+    plt.errorbar(range(1,16),mse,yerr=se)
+    plt.title("MSE for Polynomial Regression", fontsize = 12)
+    plt.ylabel("MSE", fontsize = 9)
+    plt.xlabel("Degree of Polynomial", fontsize = 9)
+    output_path = Path(__file__).resolve().parent / "PolynomialRegression.pdf"
+    plt.savefig(output_path)
+    print(f"Saved figure to {output_path}")
+
 
 if __name__ == "__main__":
     #BuildTestNets()
-    task_b()
+    #task_b()
+    Polyfit()

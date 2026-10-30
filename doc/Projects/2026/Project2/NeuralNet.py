@@ -104,6 +104,13 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
 
     def fit(self, X, y):
         #Wrapper for scikit learn
+        if len(self.activation_funcs) != len(self.layer_output_sizes):
+            raise ValueError("Jede Schicht benötigt genau eine Aktivierungsfunktion.")
+
+        # Aus den aktuell von GridSearchCV gesetzten Parametern berechnen
+        self.activation_ders = [acf.dict_act_der[f] for f in self.activation_funcs]
+        self.weight_ini = [acf.dict_act_weights[f] for f in self.activation_funcs]
+        self.cost_der = acf.dict_cost_der[self.cost_fun]
         self.init_layers(reset=True)
         self.optimizer_ = self.optimizer(self.gamma)
         self.train(X, np.asarray(y).reshape(-1, 1), epochs=1000)
