@@ -190,7 +190,7 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
     def _activation_index(self, layer_index, n_layers):
         """
             This helper function is AI generated, to merge what scikit learns CV functionalities need with the previous architecture of my neural network.
-            This sone is specifically used so we can use a CV over the number of layers, while giving the network only one set of activation functions, with the last / output activation being the last one in the list.
+            This one is specifically used so we can use a CV over the number of layers, while giving the network only one set of activation functions, with the last / output activation being the last one in the list.
             For this I have used gpt-6 luna.
             I have implemented, tested and modified this function myself.
             This therefore corresponds to usage level 2.
