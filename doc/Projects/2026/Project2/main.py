@@ -192,12 +192,13 @@ def task_b():
         network_models[name] = model
         network_scores[name] = {
             "cv_mse": -results["mean_test_score"][best_index],
+            "cv_se": results["std_test_score"][best_index] / np.sqrt(cv.get_n_splits()),
             "test_mse": np.mean((model.predict(xtest) - ytest.ravel()) ** 2),
             "optimizer": params["neuralnetwork__optimizer"].__name__,
             "gamma": params["neuralnetwork__gamma"],
         }
 
-    fig, axes = plt.subplots(1, len(Optimizers), figsize=(6.9, 2.7),
+    fig, axes = plt.subplots(1, len(Optimizers), figsize=(16, 2.7),
                              constrained_layout=True)
     """
     AI Declaration:
@@ -248,7 +249,6 @@ def task_b():
         axis.set_xlabel("$\\gamma$")
         axis.set_ylabel("Hidden-layer widths")
         axis.set_title(f"{optimizer.__name__}", fontsize=10)
-        axis.set_box_aspect(1)
     fig.suptitle("Red stars mark each optimizer's best CV score")
     fig.colorbar(im, ax=axes, label="5-fold validation MSE (color clipped at 95th percentile)")
     output_path = Path(__file__).resolve().parent / "Task_b Layers vs Gammas.pdf"
@@ -455,8 +455,10 @@ def Lassofit():
     print(f"Selected Lasso held-out test MSE: {TestMSE:.6f}")
     return lasso_model, mse, se, best_degree
 
-def PlotComparison(network_models, network_scores, ols_model, best_degree):
-    fig, axes = plt.subplots(1, 2, figsize=(13.8, 4.2),
+def PlotComparison(
+    network_models, network_scores, ols_model, best_degree, ols_cv_mse, ols_cv_se
+):
+    fig, axes = plt.subplots(1, 2, figsize=(13.8, 8),
                              constrained_layout=True)
     axes[0].plot(xx, runge(xx), color="#004488", linewidth=2, label="Runge function")
     axes[0].plot(xx, ols_model.predict(xx), color="#BB5566", linewidth=2,
@@ -478,6 +480,8 @@ def PlotComparison(network_models, network_scores, ols_model, best_degree):
                     label="held-out observations")
     axes[0].set_xlabel("$x$")
     axes[0].set_ylabel("$y$")
+    axes[0].xaxis.label.set_size(10)
+    axes[0].yaxis.label.set_size(10)
     axes[0].set_title("Fits on the shared Runge data split")
     axes[0].grid(True, alpha=0.2)
     axes[0].legend(
@@ -490,13 +494,23 @@ def PlotComparison(network_models, network_scores, ols_model, best_degree):
 
     names = [f"NN {name}" for name in network_scores]
     names.insert(0, f"OLS degree {best_degree}")
-    test_errors = [np.mean((ols_model.predict(xtest) - ytest.ravel()) ** 2)]
-    test_errors.extend(network_scores[name]["test_mse"] for name in network_scores)
+    cv_errors = [ols_cv_mse]
+    cv_errors.extend(network_scores[name]["cv_mse"] for name in network_scores)
+    cv_standard_errors = [ols_cv_se]
+    cv_standard_errors.extend(
+        network_scores[name]["cv_se"] for name in network_scores
+    )
     bar_colors = ["#BB5566", *colors[:len(network_scores)]]
-    bars = axes[1].bar(names, test_errors, color=bar_colors)
+    bars = axes[1].bar(
+        names,
+        cv_errors,
+        yerr=cv_standard_errors,
+        capsize=4,
+        color=bar_colors,
+    )
     axes[1].bar_label(bars, fmt="%.3f", padding=2, fontsize=8)
-    axes[1].set_ylabel("Held-out MSE")
-    axes[1].set_title("Held-out test error by model")
+    axes[1].set_ylabel("Mean 5-fold CV MSE (error bars: standard error)")
+    axes[1].set_title("Cross-validation error by model")
     axes[1].tick_params(axis="x", labelrotation=25)
     axes[1].grid(axis="y", alpha=0.2)
     output_path = Path(__file__).resolve().parent / "Comparison_NN_vs_Poly.pdf"
@@ -508,17 +522,28 @@ def PlotComparison(network_models, network_scores, ols_model, best_degree):
 def main():
     BuildTestNets()
     network_models, network_scores = task_b()       #Test different neural network architectures and hyperparameters using only the sigmoid function
-    Best_Poly, _, _, best_degree = Polyfit()        #Test different polynomial degrees using OLS regression
+    Best_Poly, poly_mse, poly_se, best_degree = Polyfit()        #Test different polynomial degrees using OLS regression
     Best_Ridge, _, _, ridge_degree = Ridgefit()     #Compute Ridge regression for different polynomial degrees and regularization parameters
     Best_Lasso, _, _, lasso_degree = Lassofit()     #Compute Lasso regression for different polynomial degrees and regularization parameters
     print("\nBest configuration for each neural-network architecture:")
-    print(f"{'Hidden widths':<18} {'Optimizer':<20} {'gamma':>8} {'CV MSE':>12} {'Test MSE':>12}")
+    print(
+        f"{'Hidden widths':<18} {'Optimizer':<20} {'gamma':>8} "
+        f"{'CV MSE':>12} {'CV SE':>12} {'Test MSE':>12}"
+    )
     for name, scores in network_scores.items():
         print(
             f"{name:<18} {scores['optimizer']:<20} {scores['gamma']:>8g} "
-            f"{scores['cv_mse']:>12.6f} {scores['test_mse']:>12.6f}"
+            f"{scores['cv_mse']:>12.6f} {scores['cv_se']:>12.6f} "
+            f"{scores['test_mse']:>12.6f}"
         )
-    PlotComparison(network_models, network_scores, Best_Poly, best_degree) #Compare the best neural network models with the best polynomial model
+    PlotComparison(
+        network_models,
+        network_scores,
+        Best_Poly,
+        best_degree,
+        poly_mse[best_degree - 1],
+        poly_se[best_degree - 1],
+    ) #Compare the best neural network models with the best polynomial model
 
 
 if __name__ == "__main__":

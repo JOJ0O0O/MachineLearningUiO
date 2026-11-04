@@ -118,9 +118,9 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
             layer_grads[i] = (layer_input.T @ dC_dz, np.sum(dC_dz, axis=0))
 
         if self.regularization == "L1":
-            layer_grads = [(dW + self.lam * np.sign(W), db +  self.lam * np.sign(b)) for (dW, db),(W,b) in zip(layer_grads, self.layers)]
+            layer_grads = [(dW + self.lam * np.sign(W), db) for (dW, db),(W,b) in zip(layer_grads, self.layers)]
         elif self.regularization == "L2":
-            layer_grads = [(dW + 2 * self.lam * (W), db + 2 * self.lam * (b)) for (dW, db),(W,b) in zip(layer_grads, self.layers)]
+            layer_grads = [(dW + 2 * self.lam * (W), db) for (dW, db),(W,b) in zip(layer_grads, self.layers)]
         
         return layer_grads
 
@@ -206,12 +206,11 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         if self.regularization == "L1":
             def cost_of_layers(layers):
                 return self.cost_fun(self.jax_compliant_predict(layers, inputs), targets) + self.lam * sum(
-                                                                                            jnp.sum(jnp.where(W == 0, 0.0, jnp.abs(W)))
-                                                                                            + jnp.sum(jnp.where(b == 0, 0.0, jnp.abs(b))) for (W, b) in layers)
+                                                                                            jnp.sum(jnp.where(W == 0, 0.0, jnp.abs(W))) for (W, b) in layers)
             return jax.grad(cost_of_layers)(self.layers)
         elif self.regularization == "L2":
             def cost_of_layers(layers):
-                        return self.cost_fun(self.jax_compliant_predict(layers, inputs), targets) + self.lam * sum(sum(sum(W*W)) + sum(b*b) for (W, b) in layers)
+                        return self.cost_fun(self.jax_compliant_predict(layers, inputs), targets) + self.lam * sum(sum(sum(W*W)) for (W, b) in layers)
             return jax.grad(cost_of_layers)(self.layers)
         else:
             def cost_of_layers(layers):
