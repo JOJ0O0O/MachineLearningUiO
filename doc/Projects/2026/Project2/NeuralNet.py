@@ -131,7 +131,7 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         if(sgd):
             rng = np.random.default_rng(2026)
             for _ in tqdm(range(epochs)):
-                for batch in self.shuffeled_batches(len(inputs), 128, rng):
+                for batch in self.shuffeled_batches(len(inputs), 16, rng):
                     grad = self.jax_gradient(inputs[batch], targets[batch])
                     step =  self._get_optimizer().step(grad)
                     self.update_weights(step)
