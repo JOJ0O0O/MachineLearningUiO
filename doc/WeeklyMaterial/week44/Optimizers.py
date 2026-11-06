@@ -48,7 +48,7 @@ class AdamOptimizer:
         m_hat = [(mW / (1.0 - self.beta1**self.t), mb / (1.0 - self.beta1**self.t)) for (mW, mb) in self.m]
         r_hat = [(rW / (1.0 - self.beta2**self.t), rb / (1.0 - self.beta2**self.t)) for (rW, rb) in self.r]
         
-        update = [((self.gamma * m_hatW) / (np.sqrt(r_hatW + 1e-10)),
+        update = [((self.gamma * m_hatW) / (np.sqrt(r_hatW)  + 1e-10),
             self.gamma * m_hatb / (np.sqrt(r_hatb + 1e-10))) 
             for (m_hatW, m_hatb), (r_hatW, r_hatb) in zip(m_hat, r_hat)]
         self.t+=1
