@@ -115,7 +115,8 @@ def BuildTestNets():
                             optimizer = TestOpti,
                             regularization="L2",
                             lam=0.001,
-                            gamma=0.01)
+                            gamma=0.01,
+                            batch_size=16)
 
     TestOptiJax = opt.AdamOptimizer
     TestNetJax = NN.NeuralNetwork(x.shape[1],
@@ -125,7 +126,8 @@ def BuildTestNets():
                             optimizer = TestOptiJax,
                             regularization = "L2",
                             lam=0.001,
-                            gamma = 0.01)
+                            gamma = 0.01,
+                            batch_size=16)
 
     TestNet.train(x, y, 1000, sgd=False)
     TestNetJax.train_jax(x, y, 1000, sgd=False)
@@ -157,7 +159,8 @@ def task_b():
                         cost_fun=act.mse,
                         layer_output_sizes=(50,1),
                         activation_funcs=[act.sigmoid,act.sigmoid,act.sigmoid,act.identity],
-                        optimizer=opt.AdamOptimizer))
+                        optimizer=opt.AdamOptimizer,
+                        batch_size=16))
     grid = GridSearchCV(net, param_grid, cv=cv, scoring="neg_mean_squared_error", return_train_score=True, n_jobs=-1)
     grid.fit(xtrain,ytrain.ravel())
     results = grid.cv_results_
@@ -478,15 +481,14 @@ def PlotComparison(
                     label="training observations")
     axes[0].scatter(xtest, ytest, s=32, marker="x", color="black",
                     label="held-out observations")
-    axes[0].set_xlabel("$x$")
-    axes[0].set_ylabel("$y$")
-    axes[0].xaxis.label.set_size(10)
-    axes[0].yaxis.label.set_size(10)
-    axes[0].set_title("Fits on the shared Runge data split")
+    axes[0].set_xlabel("$x$", fontsize=15)
+    axes[0].set_ylabel("$y$", fontsize=15)
+    axes[0].tick_params(axis="both", labelsize=13)
+    axes[0].set_title("Fits on the shared Runge data split", fontsize=17)
     axes[0].grid(True, alpha=0.2)
     axes[0].legend(
         frameon=False,
-        fontsize=8,
+        fontsize=9,
         ncol=3,
         loc="upper center",
         bbox_to_anchor=(0.5, -0.16),
@@ -508,10 +510,13 @@ def PlotComparison(
         capsize=4,
         color=bar_colors,
     )
-    axes[1].bar_label(bars, fmt="%.3f", padding=2, fontsize=8)
-    axes[1].set_ylabel("Mean 5-fold CV MSE (error bars: standard error)")
-    axes[1].set_title("Cross-validation error by model")
-    axes[1].tick_params(axis="x", labelrotation=25)
+    axes[1].bar_label(bars, fmt="%.3f", padding=3, fontsize=12)
+    axes[1].set_ylabel(
+        "Mean 5-fold CV MSE (error bars: standard error)", fontsize=15
+    )
+    axes[1].set_title("Cross-validation error by model", fontsize=17)
+    axes[1].tick_params(axis="x", labelrotation=25, labelsize=12)
+    axes[1].tick_params(axis="y", labelsize=12)
     axes[1].grid(axis="y", alpha=0.2)
     output_path = Path(__file__).resolve().parent / "Comparison_NN_vs_Poly.pdf"
     fig.savefig(output_path)
