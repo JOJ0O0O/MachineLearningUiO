@@ -24,9 +24,9 @@ The repository is organised into subdirectories as follows:
 │   ├── Project2.ipynb
 │   ├── Project2_nobiaspen.ipynb
 └────── README.md
+```
 
-
-- `Figures/`: Contains all Figures produced for the report
+- `results/`: Contains all Figures produced for the report
 - `Activation_Cost_funcs.py`: All used activation and cost functions, with 
 - `main.py`: Task b) (Testing of different Optimizers), comparison with OLS, creation of Ridge and Lasso models. This file will create part of the figures and a Project2_results.txt file, which will contain selected results of the run.
 - `NeuralNet.py`: The Neural Network class as a whole
