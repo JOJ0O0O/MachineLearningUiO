@@ -10,6 +10,16 @@ This repository contains the code for Project 2 in the course FYS-STK3155/FYS415
 In this project we numerically implement a handbuilt FFNN and compare its performance on a regression example on the Runge function and on a classification example on the MNIST dataset. 
 The points of comparison is either OLS, Ridge or Lasso regression for the regression or Logistic Regression for the classification example.
 
+## Requirements
+
+The required packages are listed in requirements.txt.
+Install them using e.g.:
+
+```
+pip install -r ./doc\Projects\2026\Project2\requirements.txt
+```
+Note that you might have to paste a different path to the requirements.txt file instead of just the relative path as listed above.
+
 ## Repository structure
 The repository is organised into subdirectories as follows:
 
@@ -40,5 +50,5 @@ To re-generate all results of the Project the files `main.py`, `Project2.ipynb` 
 # Results
 
 For the produced Figures please see the Figures directory.
-Selected results are saved in the file `Project2_results.txt`. (This is regenerated upon a rerun of main.py)
+Selected results are saved in the file `Project2_results.txt`(This is regenerated upon a rerun of main.py).
 For results from task c and d please view the file `Project2.ipynb`.
