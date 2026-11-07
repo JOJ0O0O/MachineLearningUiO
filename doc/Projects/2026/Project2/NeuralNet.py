@@ -19,7 +19,8 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         epochs=1000,
         output_error = None,
         regularization = None,
-        lam = 0.0
+        lam = 0.0,
+        batch_size = 128
     ):
         self.activation_funcs = activation_funcs
         n_layers = len(layer_output_sizes)
@@ -43,6 +44,7 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         self.gamma = gamma
         self.epochs = epochs
         self.output_error = output_error
+        self.batch_size = batch_size
         if regularization in ["L1", "L2", None]:
             self.regularization = regularization
             self.lam = lam
@@ -131,7 +133,7 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         if(sgd):
             rng = np.random.default_rng(2026)
             for _ in tqdm(range(epochs)):
-                for batch in self.shuffeled_batches(len(inputs), 128, rng):
+                for batch in self.shuffeled_batches(len(inputs), self.batch_size, rng):
                     grad = self.jax_gradient(inputs[batch], targets[batch])
                     step =  self._get_optimizer().step(grad)
                     self.update_weights(step)
@@ -161,7 +163,7 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         if(sgd):
             rng = np.random.default_rng(2026)
             for _ in tqdm(range(epochs)):
-                for batch in self.shuffeled_batches(len(inputs), 16, rng):
+                for batch in self.shuffeled_batches(len(inputs), self.batch_size, rng):
                     grad = self.compute_gradient(inputs[batch], targets[batch])
                     step =  self._get_optimizer().step(grad)
                     self.update_weights(step)
@@ -284,4 +286,3 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
                 self.layers.append((weights, biases))
             if hasattr(self, "optimizer_"):
                 del self.optimizer_
-
