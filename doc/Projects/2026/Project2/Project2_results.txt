@@ -1,0 +1,44 @@
+Training with  1000  epochs is done.
+Training with  1000  epochs is done.
+Training with  1000  epochs is done.
+{'neuralnetwork__gamma': 0.003, 'neuralnetwork__layer_output_sizes': (50, 1), 'neuralnetwork__optimizer': <class 'Optimizers.AdamOptimizer'>} Pipeline(steps=[('standardscaler', StandardScaler()),
+                ('neuralnetwork',
+                 NeuralNetwork(activation_funcs=[<function sigmoid at 0x00000256FFF082C0>,
+                                                 <function sigmoid at 0x00000256FFF082C0>,
+                                                 <function sigmoid at 0x00000256FFF082C0>,
+                                                 <function identity at 0x00000256FFF08AE0>],
+                               batch_size=16,
+                               cost_fun=<function mse at 0x00000256FFF08540>,
+                               gamma=0.003, layer_output_sizes=(50, 1),
+                               network_input_size=1,
+                               optimizer=<class 'Optimizers.AdamOptimizer'>))])
+Training with  1000  epochs is done.
+Training with  1000  epochs is done.
+Training with  1000  epochs is done.
+Training with  1000  epochs is done.
+Training with  1000  epochs is done.
+Saved figure to  \MachineLearningUiO\doc\Projects\2026\Project2\Task_b Layers vs Gammas.pdf
+Saved figure to  \MachineLearningUiO\doc\Projects\2026\Project2\PolynomialRegression.pdf
+CV-selected polynomial degree: 11
+Selected OLS 5-fold CV MSE: 0.021113 +/- 0.002898
+Selected OLS held-out test MSE: 0.012034
+Best Ridge degree: 13, lambda: 5.994842503189409e-07
+Saved figure to  \MachineLearningUiO\doc\Projects\2026\Project2\PolynomialRidge.pdf
+CV-selected polynomial degree: 13
+Selected Ridge 5-fold CV MSE: 0.020929 +/- 0.002665
+Selected Ridge held-out test MSE: 0.011659
+Best Lasso degree: 15, lambda: 1e-08
+Saved figure to  \MachineLearningUiO\doc\Projects\2026\Project2\PolynomialLasso.pdf
+CV-selected polynomial degree: 15
+Selected Lasso 5-fold CV MSE: 0.021445 +/- 0.002059
+Selected Lasso held-out test MSE: 0.011637
+
+Best configuration for each neural-network architecture:
+Hidden widths      Optimizer               gamma       CV MSE        CV SE     Test MSE
+50                 AdamOptimizer           0.003     0.017009     0.001738     0.011838
+50 x 50            AdamOptimizer            0.15     0.017515     0.002489     0.013009
+50 x 50 x 50       AdamOptimizer           0.003     0.017061     0.001835     0.012549
+100                AdamOptimizer           0.003     0.018120     0.002348     0.011064
+100 x 100          AdamOptimizer           0.003     0.017154     0.001571     0.014119
+100 x 100 x 100    AdamOptimizer           0.001     0.017613     0.001606     0.013263
+Saved figure to  \MachineLearningUiO\doc\Projects\2026\Project2\Comparison_NN_vs_Poly.pdf

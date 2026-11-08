@@ -147,6 +147,11 @@ def BuildTestNets():
 def task_b():
     cv = KFold(n_splits=5, shuffle=True, random_state=2026)
     Optimizers = [opt.PlainGDOptimizer, opt.AdamOptimizer, opt.RMSPropOptimizer]
+    optimizer_names = {
+        opt.PlainGDOptimizer: "Stochastic Gradient Descent",
+        opt.AdamOptimizer: "Adam",
+        opt.RMSPropOptimizer: "RMSProp",
+    }
     gammas = [0.001, 0.003, 0.01, 0.03, 0.07, 0.1, 0.15, 0.2,0.25,0.3]
     layers = [(50,1),(50,50,1),(50,50,50,1),(100,1),(100,100,1),(100,100,100,1)]
 
@@ -251,7 +256,7 @@ def task_b():
         )
         axis.set_xlabel("$\\gamma$")
         axis.set_ylabel("Hidden-layer widths")
-        axis.set_title(f"{optimizer.__name__}", fontsize=10)
+        axis.set_title(optimizer_names[optimizer], fontsize=10)
     fig.suptitle("Red stars mark each optimizer's best CV score")
     fig.colorbar(im, ax=axes, label="5-fold validation MSE (color clipped at 95th percentile)")
     output_path = Path(__file__).resolve().parent / "Task_b Layers vs Gammas.pdf"
