@@ -20,7 +20,7 @@ class NeuralNetwork(BaseEstimator, RegressorMixin):
         output_error = None,
         regularization = None,
         lam = 0.0,
-        batch_size = 128
+        batch_size = 16
     ):
         self.activation_funcs = activation_funcs
         n_layers = len(layer_output_sizes)
