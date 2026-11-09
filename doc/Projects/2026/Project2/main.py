@@ -555,6 +555,9 @@ def main():
         poly_se[best_degree - 1],
     ) #Compare the best neural network models with the best polynomial model
 
+    from exercise_e import exercise_e
+    exercise_e()
+
 
 if __name__ == "__main__":
     results_path = Path(__file__).resolve().parent / "Project2_results.txt"
