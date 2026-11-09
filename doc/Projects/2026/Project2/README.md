@@ -25,7 +25,9 @@ The repository is organised into subdirectories and code files as follows:
 
 ```
 ├── Project2/
-│   ├── Figures/
+│   ├── results/
+│   │   ├── exercise_b_c_d/
+│   │   ├── exercise_e/
 │   ├── Activation_Cost_funcs.py
 │   ├── exercise_e.py
 │   ├── main.py
@@ -37,7 +39,7 @@ The repository is organised into subdirectories and code files as follows:
 └────── README.md
 ```
 
-- `results/`: Contains all Figures produced for the report
+- `results/`: Contains some of the Figures and results produced for the report split into the two subdirectories. For the rest of the figures see `Project2.ipynb`.
 - `Activation_Cost_funcs.py`: All used activation and cost functions, with 
 - `main.py`: Task b) (Testing of different Optimizers), comparison with OLS, creation of Ridge and Lasso models. This file will create part of the figures and a Project2_results.txt file, which will contain selected results of the run.
 - `NeuralNet.py`: The Neural Network class as a whole

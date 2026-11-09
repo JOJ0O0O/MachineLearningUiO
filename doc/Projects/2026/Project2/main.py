@@ -263,6 +263,48 @@ def task_b():
     fig.savefig(output_path)
     print(f"Saved figure to {output_path}")
     plt.close(fig)
+    """
+    AI Declaration:
+    I have used AI to create the below code to plot the best CV MSE for each optimizer
+    Tool: GPT6-Luna in VSCode
+    This corresponds to usage Level 3 as I have only tested and verified the code myself.
+    08.11.2026
+    """
+    best_mse_by_optimizer = []
+    for optimizer in Optimizers:
+        candidates = [
+            index
+            for index, params in enumerate(results["params"])
+            if params["neuralnetwork__optimizer"] is optimizer
+            and np.isfinite(results["mean_test_score"][index])
+        ]
+        if not candidates:
+            raise ValueError(
+                f"Cross-validation produced no finite scores for "
+                f"{optimizer_names[optimizer]}."
+            )
+        best_index = max(
+            candidates, key=lambda index: results["mean_test_score"][index]
+        )
+        best_mse_by_optimizer.append(-results["mean_test_score"][best_index])
+
+    fig, axis = plt.subplots(figsize=(6.3, 3.5), constrained_layout=True)
+    bars = axis.bar(
+        [optimizer_names[optimizer] for optimizer in Optimizers],
+        best_mse_by_optimizer,
+        color=["#4477AA", "#228833", "#CC6677"],
+    )
+    axis.bar_label(bars, fmt="%.4f", padding=3)
+    axis.set_ylabel("Best CV MSE (lower is better)")
+    axis.set_title("Best CV MSE by optimizer")
+    axis.tick_params(axis="x", labelrotation=15)
+    axis.grid(axis="y", alpha=0.2)
+    output_path = (
+        Path(__file__).resolve().parent / "Task_b Best Optimizer Comparison.pdf"
+    )
+    fig.savefig(output_path)
+    print(f"Saved figure to {output_path}")
+    plt.close(fig)
     return network_models, network_scores
 
 def Polyfit():
