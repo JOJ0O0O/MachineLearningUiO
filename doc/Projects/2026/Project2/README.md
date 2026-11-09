@@ -46,7 +46,7 @@ The repository is organised into subdirectories and code files as follows:
 - `exercise_e.py`: Code for the classification tasks
 - `Project2_nobiaspen.ipynb`: Contains the results for the same investigations as in `Project2.ipynb` with the fixed network. This is not contained in the report to stay consistent in throughout the report, as the code for task e) is too computationally expensive to re run. 
 
-To re-generate all results of the Project the files `main.py`, `Project2.ipynb` (all cells, which contain code not provided from the start) and `exercise_e.py`.
+To re-generate all results of the Project the files `main.py` and `Project2.ipynb` (all cells, which contain code not provided from the start) need to be executed.
 
 # Results
 
